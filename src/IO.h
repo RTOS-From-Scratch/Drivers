@@ -1,10 +1,6 @@
 #ifndef IO_H_
 #define IO_H_
 
-#include <stdint.h>
-
-#define REG_VALUE(address) (*((volatile uint32_t *)( address )))
-
 enum PORTS { PORT_A, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F };
 typedef enum PORTS PORTS;
 
@@ -14,20 +10,11 @@ typedef enum PINS PINS;
 enum PIN_STATE { LOW, HIGH };
 typedef enum PIN_STATE PIN_STATE;
 
-enum PIN_MODES { IN, OUT, IN_PULLUP, IN_PULLDOWN };
+enum PIN_MODES { INPUT, OUTPUT, INPUT_PULLUP, INPUT_PULLDOWN };
 typedef enum PIN_MODES PIN_MODES;
 
 enum PIN_PULL_STATE { UP, DOWN };
 typedef enum PIN_PULL_STATE PIN_PULL_STATE;
-
-static const uint32_t PORTS_ADDR[] = {
-    0x40004000, // PORTA
-    0x40005000, // PORTB
-    0x40006000, // PORTC
-    0x40007000, // PORTD
-    0x40024000, // PORTE
-    0x40025000, // PORTF
-};
 
 #define PORT_PIN PORTS port, PINS pin
 #define A0 PORT_A, PIN_0

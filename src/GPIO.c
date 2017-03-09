@@ -1,15 +1,9 @@
 #include "GPIO.h"
 #include "tm4c123gh6pm.h"
+#include "inner/inner_IO.h"
 
 #define is ==
 #define is_not !=
-#define GPIOIS_OFFSET  0x404
-#define GPIOIBE_OFFSET 0x408
-#define GPIOIEV_OFFSET 0x40C
-#define GPIOIM_OFFSET  0x410
-#define GPIORIS_OFFSET 0x414
-#define GPIOMIS_OFFSET 0x418
-#define GPIOICR_OFFSET 0x41C
 #define GPIO_PORTA_INT 0
 #define GPIO_PORTB_INT 1
 #define GPIO_PORTC_INT 2
