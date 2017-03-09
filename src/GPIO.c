@@ -11,18 +11,14 @@
 #define GPIO_PORTE_INT 4
 #define GPIO_PORTF_INT 30
 
-enum GPIO_PROPERTIES
-{
-    GPIO_DATA  = 0x3FC,
-    GPIO_DIR   = 0x400,
-    GPIO_AFSEL = 0x420,
-    GPIO_PUR   = 0x510,
-    GPIO_PDR   = 0x514,
-    GPIO_DEN   = 0x51C,
-    GPIO_LOCK  = 0x520,
-    GPIO_CR    = 0x524,
-    GPIO_AMSEL = 0x528,
-    GPIO_PCTL  = 0x52C,
+enum __GPIO_Properties {
+    __GPIO_INTERRUPT_SENSE         = 0x404,
+    __GPIO_INTERRUPT_BOTH_EDGES    = 0x408,
+    __GPIO_INTERRUPT_EVENT         = 0x40C,
+    __GPIO_INTERRUPT_MASK          = 0x410,
+    __GPIO_RAW_INTERRUPT_STATUS    = 0x414,
+    __GPIO_MASKED_INTERRUPT_STATUS = 0x418,
+    __GPIO_INTERRUPT_CLEAR         = 0x41C,
 };
 
 static void GPIO_PCTL_Configuration( uint32_t PCTL_addr, HEX pins );
