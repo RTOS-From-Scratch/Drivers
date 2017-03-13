@@ -23,6 +23,7 @@ typedef enum GPIO_ISR_EDGE GPIO_ISR_EDGE;
 typedef enum GPIO_ISR_LEVEL GPIO_ISR_LEVEL;
 
 // functions
+// TODO: functions of clearing GPIO configurations
 void GPIO_pinMode( PORT_PIN, PIN_MODES mode );
 void GPIO_pinsMode( PORTS port, hex_t pins, PIN_MODES mode );
 void GPIO_pinWrite( PORT_PIN, PIN_STATE state );
