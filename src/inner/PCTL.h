@@ -39,6 +39,12 @@ static const uint32_t PCTL_UART_Rx[] = {
     GPIO_PCTL_PB0_U1RX,         // U1_PORTB
 };
 
+//static const uint32_t PCTL_SPI[] = {
+//    GPIO_PCTL_PA2_SSI0CLK,      // SPI0
+//    GPIO_PCTL_PA
+
+//}
+
 // set the Port Control encode
 void PCTL_set( uint32_t PCTL_module_encode, PORTS port );
 // clear the Port Control encode

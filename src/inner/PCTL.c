@@ -23,10 +23,10 @@
 
 void PCTL_set( uint32_t PCTL_module_encode, PORTS port )
 {
-    REG_VALUE(__PORTS_ADDR[port] + __IO_PCTL) |= PCTL_module_encode;
+    REG_VALUE(__IO_PORTS_ADDR[port] + __IO_PCTL) |= PCTL_module_encode;
 }
 
 void PCTL_clear( uint32_t PCTL_module_encode, PORTS port )
 {
-    REG_VALUE(__PORTS_ADDR[port] + __IO_PCTL) &= ~(PCTL_module_encode);
+    REG_VALUE(__IO_PORTS_ADDR[port] + __IO_PCTL) &= ~(PCTL_module_encode);
 }

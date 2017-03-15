@@ -42,7 +42,7 @@ void UART_init( UART_BAUDRATE_t baudRate, UART_MODE_t mode, UART_MODULE_t )
 /*****************************************************************************/
 
 /**************************** GPIO configurations ****************************/
-    unsigned long TxRx_port_addr                 = __PORTS_ADDR[port];
+    unsigned long TxRx_port_addr                 = __IO_PORTS_ADDR[port];
     unsigned long TxRx_bit_specific              = (1 << TxPin) | (1 << RxPin);
     unsigned long TxRx_bit_specific_complemented = TxRx_bit_specific;
 

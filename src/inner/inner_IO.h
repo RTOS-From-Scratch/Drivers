@@ -20,7 +20,7 @@ enum __IO_PROPERTIES
     __IO_PCTL  = 0x52C,
 };
 
-static const unsigned long __PORTS_ADDR[] = {
+static const unsigned long __IO_PORTS_ADDR [] = {
     0x40004000, // PORTA
     0x40005000, // PORTB
     0x40006000, // PORTC
