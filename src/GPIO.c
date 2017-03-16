@@ -4,12 +4,12 @@
 
 #define is ==
 #define is_not !=
-#define GPIO_PORTA_INT 0
-#define GPIO_PORTB_INT 1
-#define GPIO_PORTC_INT 2
-#define GPIO_PORTD_INT 3
-#define GPIO_PORTE_INT 4
-#define GPIO_PORTF_INT 30
+//#define GPIO_PORTA_INT 0
+//#define GPIO_PORTB_INT 1
+//#define GPIO_PORTC_INT 2
+//#define GPIO_PORTD_INT 3
+//#define GPIO_PORTE_INT 4
+//#define GPIO_PORTF_INT 30
 
 enum __GPIO_Properties {
     __GPIO_INTERRUPT_SENSE         = 0x404,
@@ -21,12 +21,12 @@ enum __GPIO_Properties {
     __GPIO_INTERRUPT_CLEAR         = 0x41C,
 };
 
-static void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins );
-static void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_complemented, PIN_MODES mode );
+//static void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins );
+//static void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_complemented, PIN_MODES mode );
 
 void GPIO_pinMode( PORTS port, PINS pin, PIN_MODES mode )
 {
-    uint32_t bit_specific = (1 << pin);
+    uint32_t bit_specific = 1 << pin;
     GPIO_pinModeCore( port, bit_specific, ~bit_specific, mode );
 
     // PCTL
@@ -34,15 +34,15 @@ void GPIO_pinMode( PORTS port, PINS pin, PIN_MODES mode )
 }
 
 // TODO: didn't finished yet
-void GPIO_pinsMode( PORTS port, hex_t pins, PIN_MODES mode )
+/*void GPIO_pinsMode( PORTS port, hex_t pins, PIN_MODES mode )
 {
     GPIO_pinModeCore( port, pins, ~pins, mode );
 
     // PCTL
     GPIO_PCTL_Configuration( __PORTS_ADDR[port] + __IO_PCTL, pins );
-}
+}*/
 
-void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins )
+/*void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins )
 {
     uint8_t pin  = 0x0;
 
@@ -55,9 +55,9 @@ void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins )
 
         pin++;
     }
-}
+}*/
 
-void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_complemented, PIN_MODES mode )
+/*void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_complemented, PIN_MODES mode )
 {
     uint32_t port_addr;
 
@@ -102,7 +102,7 @@ void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_compleme
             REG_VALUE(port_addr + __IO_DIR)  &= bit_specific_complemented;
             break;
     }
-}
+}*/
 
 void GPIO_pinWrite( PORTS port, PINS pin, PIN_STATE state )
 {
@@ -127,7 +127,7 @@ PIN_STATE GPIO_pinRead( PORTS port, PINS pin )
     return state;
 }
 
-void GPIO_pinsWrite( PORTS port, hex_t pins, hex_t state )
+/*void GPIO_pinsWrite( PORTS port, hex_t pins, hex_t state )
 {
     // TODO: check if the clock is working on that port
 //    assert( (SYSCTL_RCGCGPIO_R & ON) is ON );
@@ -137,14 +137,14 @@ void GPIO_pinsWrite( PORTS port, hex_t pins, hex_t state )
 
 //    else if ( state is LOW )
 //        REG_VALUE( PORTS_ADDR[ port ] + GPIO_DATA ) &= ~( 1 << pin );
-}
+}*/
 
-hex_t GPIO_pinsRead( PORTS port, hex_t pins )
+/*hex_t GPIO_pinsRead( PORTS port, hex_t pins )
 {
 
-}
+}*/
 
-void GPIO_ISR_edges( PORTS port, PINS pin, GPIO_ISR_EDGE ISR_edge, uint8_t priority, bool enable, void(*run)() )
+/*void GPIO_ISR_edges( PORTS port, PINS pin, GPIO_ISR_EDGE ISR_edge, uint8_t priority, bool enable, void(*run)() )
 {
     // TODO: check if the clock is working on that port
     // TODO: check if it has level configuration
@@ -218,4 +218,4 @@ bool GPIO_ISR_getStatus( PORTS port )
         return (NVIC_DIS0_R & GPIO_PORTF_INT) is_not 0 ? false : true;
 
     else return false;
-}
+}*/
