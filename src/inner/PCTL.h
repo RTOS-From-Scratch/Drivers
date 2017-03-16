@@ -23,8 +23,6 @@
 #define PCTL_H_
 
 #include <stdint.h>
-#include "../IO.h"
-#include "inner_IO.h"
 #include "tm4c123gh6pm.h"
 
 static const uint32_t PCTL_UART_Rx[] = {
@@ -38,10 +36,5 @@ static const uint32_t PCTL_UART_Rx[] = {
     GPIO_PCTL_PE0_U7RX,         // U7
     GPIO_PCTL_PB0_U1RX,         // U1_PORTB
 };
-
-// set the Port Control encode
-void PCTL_set( uint32_t PCTL_module_encode, PORTS port );
-// clear the Port Control encode
-void PCTL_clear( uint32_t PCTL_module_encode, PORTS port );
 
 #endif // PCTL_H_
