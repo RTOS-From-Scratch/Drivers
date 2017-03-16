@@ -2,44 +2,45 @@
 #define INNER_UART_H_
 
 // UART Rx/Tx pins
-#define __U0_PORT         PORT_A
-#define __U0_RX_pin       0
-#define __U0_TX_pin       1
-#define __U1_PORTC_PORT   PORT_C
-#define __U1_PORTC_RX_pin 4
-#define __U1_PORTC_TX_pin 5
-#define __U2_PORT         PORT_D
-#define __U2_RX_pin       6
-#define __U2_TX_pin       7
-#define __U3_PORT         PORT_C
-#define __U3_RX_pin       6
-#define __U3_TX_pin       7
-#define __U4_PORT         PORT_C
-#define __U4_RX_pin       4
-#define __U4_TX_pin       5
-#define __U5_PORT         PORT_E
-#define __U5_RX_pin       4
-#define __U5_TX_pin       5
-#define __U6_PORT         PORT_D
-#define __U6_RX_pin       4
-#define __U6_TX_pin       5
-#define __U7_PORT         PORT_E
-#define __U7_RX_pin       0
-#define __U7_TX_pin       1
-#define __U1_PORTB_PORT   PORT_B
-#define __U1_PORTB_RX_pin 0
-#define __U1_PORTB_TX_pin 1
+//#define __U0_PORT         PORT_A
+//#define __U0_RX_pin       0
+//#define __U0_TX_pin       1
+//#define __U1_PORTC_PORT   PORT_C
+//#define __U1_PORTC_RX_pin 4
+//#define __U1_PORTC_TX_pin 5
+//#define __U2_PORT         PORT_D
+//#define __U2_RX_pin       6
+//#define __U2_TX_pin       7
+//#define __U3_PORT         PORT_C
+//#define __U3_RX_pin       6
+//#define __U3_TX_pin       7
+//#define __U4_PORT         PORT_C
+//#define __U4_RX_pin       4
+//#define __U4_TX_pin       5
+//#define __U5_PORT         PORT_E
+//#define __U5_RX_pin       4
+//#define __U5_TX_pin       5
+//#define __U6_PORT         PORT_D
+//#define __U6_RX_pin       4
+//#define __U6_TX_pin       5
+//#define __U7_PORT         PORT_E
+//#define __U7_RX_pin       0
+//#define __U7_TX_pin       1
+//#define __U1_PORTB_PORT   PORT_B
+//#define __U1_PORTB_RX_pin 0
+//#define __U1_PORTB_TX_pin 1
 
 // UART address
-#define __U0_ADDR        0x4000C000
-#define __U1_PORTC_ADDR  0x4000D000
-#define __U2_ADDR        0x4000E000
-#define __U3_ADDR        0x4000F000
-#define __U4_ADDR        0x40010000
-#define __U5_ADDR        0x40011000
-#define __U6_ADDR        0x40012000
-#define __U7_ADDR        0x40013000
-#define __U1_PORTB_ADDR  0x4000D000
+static const unsigned long __UART_ADDR[] = {
+    0x4000C000,
+    0x4000D000,
+    0x4000E000,
+    0x4000F000,
+    0x40010000,
+    0x40011000,
+    0x40012000,
+    0x40013000
+};
 
 /*// UART Tx/Rx port_pin
 #define UART_Rx_Tx_t    unsigned long addr, PORT_PIN

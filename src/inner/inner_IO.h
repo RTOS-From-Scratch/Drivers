@@ -1,10 +1,13 @@
 #ifndef INNER_IO_H_
 #define INNER_IO_H_
 
-#include "tm4c123gh6pm.h"
-
 #define REG_VALUE(address) (*((volatile unsigned long *)( address )))
 #define IO_REG(port_address, offset) REG_VALUE(port_address + offset)
+#define BYTE_LENGTH 8
+#define __PORT(PORT_PIN) (unsigned char)(PORT_PIN)
+#define __PIN(PORT_PIN) (unsigned char)(PORT_PIN >> BYTE_LENGTH)
+#define is ==
+#define is_not !=
 
 enum __IO_PROPERTIES
 {
@@ -28,6 +31,5 @@ static const unsigned long __PORTS_ADDR[] = {
     0x40024000, // PORTE
     0x40025000, // PORTF
 };
-
 
 #endif // INNER_IO_H_
