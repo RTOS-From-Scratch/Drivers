@@ -26,15 +26,14 @@ enum __Timer_Mode
 };
 typedef enum __Timer_Mode __Timer_Mode;
 
-enum __Timer_Base_Addr
+static const unsigned long __Timer_Addr[]=
 {
-    Timer_0 = 0x40030000,
-    Timer_1 = 0x40031000,
-    Timer_2 = 0x40032000,
-    Timer_3 = 0x40033000,
-    Timer_4 = 0x40034000,
-    Timer_5 = 0x40035000
+    0x40030000,
+    0x40031000,
+    0x40032000,
+    0x40033000,
+    0x40034000,
+    0x40035000
 };
-typedef enum __Timer_Base_Addr __Timer_Base_Addr;
 
 #endif //INNER_Timer_H_
