@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include "inner/inner_SPI.h"
 
-typedef char byte;
-
 typedef enum SPI_MODULES {
     SPI_MODULE_0,
     SPI_MODULE_1_PORT_F = 1,
