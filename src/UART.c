@@ -49,12 +49,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 /*****************************************************************************/
 
 /**************************** GPIO configurations ****************************/
-<<<<<<< HEAD
-    unsigned long TxRx_port_addr                 = __IO_PORTS_ADDR[port];
-    unsigned long TxRx_bit_specific              = (1 << TxPin) | (1 << RxPin);
-    unsigned long TxRx_bit_specific_complemented = TxRx_bit_specific;
-=======
-    unsigned long uart_port_addr             = __PORTS_ADDR[port];
+    unsigned long uart_port_addr             = __IO_PORTS_ADDR[port];
     unsigned long bits_specific;
     unsigned long bits_specific_complemented;
 
@@ -66,7 +61,6 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
         bits_specific              = (1 << TxPin) | (1 << RxPin);
 
     bits_specific_complemented = ~bits_specific;
->>>>>>> master
 
     // digital enable
     IO_REG(uart_port_addr, __IO_DEN)   |= bits_specific;
