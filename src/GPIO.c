@@ -29,7 +29,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
     uint32_t bit_specific = 1 << pin;
     uint32_t bit_specific_complemented = ~bit_specific;
 
-    uint32_t port_addr = __PORTS_ADDR[port];
+    uint32_t port_addr = __IO_PORTS_ADDR[port];
 
     // enable clock for this port
     SYSCTL_RCGCGPIO_R |= (1 << port);
@@ -154,10 +154,10 @@ void GPIO_write(PORT_PIN port_pin, PIN_STATE state )
 //    assert( (SYSCTL_RCGCGPIO_R & ON) is ON );
 
     if( state is HIGH )
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __IO_DATA ) |= ( 1 << pin );
+        REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) |= ( 1 << __PIN(port_pin) );
 
     else if ( state is LOW )
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __IO_DATA ) &= ~( 1 << pin );
+        REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) &= ~( 1 << __PIN(port_pin) );
 }
 
 PIN_STATE GPIO_read(PORT_PIN port_pin)
@@ -166,7 +166,7 @@ PIN_STATE GPIO_read(PORT_PIN port_pin)
 
     uint32_t state;
 
-    state = REG_VALUE( __IO_PORTS_ADDR[ port ] + __IO_DATA ) & (1 << pin);
+    state = REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) & (1 << __PIN(port_pin));
 
     return state;
 }
