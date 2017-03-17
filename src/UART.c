@@ -50,8 +50,17 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 
 /**************************** GPIO configurations ****************************/
     unsigned long uart_port_addr             = __PORTS_ADDR[port];
-    unsigned long bits_specific              = (1 << TxPin) | (1 << RxPin);
-    unsigned long bits_specific_complemented = ~bits_specific;
+    unsigned long bits_specific;
+    unsigned long bits_specific_complemented;
+
+    if( mode == UART_MODE_Tx )
+        bits_specific              = (1 << TxPin);
+    else if( mode == UART_MODE_Rx )
+        bits_specific              = (1 << RxPin);
+    else
+        bits_specific              = (1 << TxPin) | (1 << RxPin);
+
+    bits_specific_complemented = ~bits_specific;
 
     // digital enable
     IO_REG(uart_port_addr, __IO_DEN)   |= bits_specific;
@@ -70,25 +79,34 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     if( port == PORT_B )
         module_number = U1_PORTB_PCTL_ENCODE_INDEX;
 
+    // FIXME: same if checks, another solution ?
     if( mode == UART_MODE_Tx )
     {
-        IO_REG(uart_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_number] << 4;
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (TxPin * 4)) ) |
+                PCTL_UART_Rx[module_number] << 4;
         IO_REG(uart_port_addr, __IO_DIR)  |= (1 << TxPin);
     }
 
     else if( mode == UART_MODE_Rx )
     {
-        IO_REG(uart_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_number];
-        IO_REG(uart_port_addr, __IO_DIR)  |= ~(1 << RxPin);
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (RxPin * 4)) ) |
+                PCTL_UART_Rx[module_number];
+        IO_REG(uart_port_addr, __IO_DIR)  &= ~(1 << RxPin);
     }
 
     else    // Tx and Rx
     {
         // Rx
-        IO_REG(uart_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_number];
-        IO_REG(uart_port_addr, __IO_DIR)  |= ~(1 << RxPin);
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (RxPin * 4)) ) |
+                PCTL_UART_Rx[module_number];
+        IO_REG(uart_port_addr, __IO_DIR)  &= ~(1 << RxPin);
         // Tx
-        IO_REG(uart_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_number] << 4;
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (TxPin * 4)) ) |
+                PCTL_UART_Rx[module_number] << 4;
         IO_REG(uart_port_addr, __IO_DIR)  |= (1 << TxPin);
     }
 /*****************************************************************************/
