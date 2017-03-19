@@ -26,11 +26,11 @@ void Timer_init(TIMER_MODULE_t timer_module, __Timer_Mode mode, __Timer_Count_Di
     byte pin = __TIMER_PIN(timer_module);
 
     //configure Timer clock register and set the bit alternated to the timer number
-    IO_REG(RCGC_BASE, RCGCTIMER_OFFSET)   |= (1<< __Timer_Addr[timer_num]);
+    IO_REG(RCGC_BASE, RCGCTIMER_OFFSET)   |= (1<< timer_num);
     //configure GPIO clock register and set the bit alternated to the port number
     IO_REG(RCGC_BASE, RCGCGPIO_OFFSET)   |= (1<< port);
     //configure port control register and set the value of the timer configuration
-    IO_REG(__PORTS_ADDR[port], __IO_PCTL)   |= 0x7;
+    IO_REG(__PORTS_ADDR[port], __IO_PCTL)   |= (7 << pin);
     // clear configuration register
     IO_REG(__Timer_Addr[timer_num], GPTM_CFG_R)   &= 0;
 
