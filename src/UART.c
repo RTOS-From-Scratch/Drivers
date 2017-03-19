@@ -49,7 +49,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 /*****************************************************************************/
 
 /**************************** GPIO configurations ****************************/
-    unsigned long uart_port_addr             = __PORTS_ADDR[port];
+    unsigned long uart_port_addr             = __IO_PORTS_ADDR[port];
     unsigned long bits_specific;
     unsigned long bits_specific_complemented;
 

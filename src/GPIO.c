@@ -29,7 +29,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
     uint32_t bit_specific = 1 << pin;
     uint32_t bit_specific_complemented = ~bit_specific;
 
-    uint32_t port_addr = __PORTS_ADDR[port];
+    uint32_t port_addr = __IO_PORTS_ADDR[port];
 
     // enable clock for this port
     SYSCTL_RCGCGPIO_R |= (1 << port);
@@ -74,7 +74,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
     }
 
     // PCTL
-    REG_VALUE(__PORTS_ADDR[port] + __IO_PCTL) &= ~( 0xF << (pin * 4) );
+    REG_VALUE(__IO_PORTS_ADDR[port] + __IO_PCTL) &= ~( 0xF << (pin * 4) );
 }
 
 // TODO: didn't finished yet
@@ -83,7 +83,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
     GPIO_pinModeCore( port, pins, ~pins, mode );
 
     // PCTL
-    GPIO_PCTL_Configuration( __PORTS_ADDR[port] + __IO_PCTL, pins );
+    GPIO_PCTL_Configuration( __IO_PORTS_ADDR[port] + __IO_PCTL, pins );
 }*/
 
 /*void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins )
@@ -105,7 +105,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
 {
     uint32_t port_addr;
 
-    port_addr = __PORTS_ADDR[ port ];
+    port_addr = __IO_PORTS_ADDR[ port ];
 
     // enable clock for this port
     SYSCTL_RCGCGPIO_R |= (1 << port);
@@ -154,10 +154,10 @@ void GPIO_write(PORT_PIN port_pin, PIN_STATE state )
 //    assert( (SYSCTL_RCGCGPIO_R & ON) is ON );
 
     if( state is HIGH )
-        REG_VALUE( __PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) |= ( 1 << __PIN(port_pin) );
+        REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) |= ( 1 << __PIN(port_pin) );
 
     else if ( state is LOW )
-        REG_VALUE( __PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) &= ~( 1 << __PIN(port_pin) );
+        REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) &= ~( 1 << __PIN(port_pin) );
 }
 
 PIN_STATE GPIO_read(PORT_PIN port_pin)
@@ -166,7 +166,7 @@ PIN_STATE GPIO_read(PORT_PIN port_pin)
 
     uint32_t state;
 
-    state = REG_VALUE( __PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) & (1 << __PIN(port_pin));
+    state = REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) & (1 << __PIN(port_pin));
 
     return state;
 }
@@ -195,14 +195,14 @@ PIN_STATE GPIO_read(PORT_PIN port_pin)
     // Check if act as GPIO
 
     // enable ISR trigger as egde
-    REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_SENSE ) &= ~(1 << pin);
+    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_SENSE ) &= ~(1 << pin);
 
     if( ISR_edge is Edge_FALLING )
-        REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) &= ~(1 << pin);
+        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) &= ~(1 << pin);
     else if(ISR_edge is Edge_RISING)
-        REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) |= (1 << pin);
+        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) |= (1 << pin);
     else if( ISR_edge is Edge_Both )
-        REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_BOTH_EDGES ) |= (1 << pin);
+        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_BOTH_EDGES ) |= (1 << pin);
 
     // Enable interrupt globally
 
@@ -219,12 +219,12 @@ void GPIO_ISR_levels( PORTS port, PINS pin, GPIO_ISR_LEVEL ISR_level, uint8_t pr
     // Check if act as GPIO
 
     // enable ISR trigger as level
-    REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_SENSE ) |= (1 << pin);
+    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_SENSE ) |= (1 << pin);
 
     if( ISR_level is LEVEL_LOW )
-        REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) &= ~(1 << pin);
+        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) &= ~(1 << pin);
     else if( ISR_level is LEVEL_HIGH )
-        REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) |= (1 << pin);
+        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) |= (1 << pin);
 
     if( enable is true )
         GPIO_ISR_enable(port, pin);
@@ -240,7 +240,7 @@ void GPIO_ISR_enable( PORTS port, PINS pin )
         NVIC_EN0_R |= GPIO_PORTF_INT;
 
     // disable masking
-    REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_MASK ) |= (1 << pin);
+    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_MASK ) |= (1 << pin);
 }
 
 void GPIO_ISR_disable( PORTS port, PINS pin )
@@ -251,7 +251,7 @@ void GPIO_ISR_disable( PORTS port, PINS pin )
         NVIC_DIS0_R |= GPIO_PORTF_INT;
 
     // enable masking
-    REG_VALUE( __PORTS_ADDR[ port ] + __GPIO_INTERRUPT_MASK ) &= ~(1 << pin);
+    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_MASK ) &= ~(1 << pin);
 }
 
 bool GPIO_ISR_getStatus( PORTS port )
