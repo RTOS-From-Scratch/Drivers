@@ -29,7 +29,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
     uint32_t bit_specific = 1 << pin;
     uint32_t bit_specific_complemented = ~bit_specific;
 
-    uint32_t port_addr = __PORTS_ADDR[port];
+    uint32_t port_addr = __IO_PORTS_ADDR[port];
 
     // enable clock for this port
     SYSCTL_RCGCGPIO_R |= (1 << port);
