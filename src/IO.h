@@ -1,69 +1,59 @@
 #ifndef IO_H_
 #define IO_H_
 
-enum PORTS { PORT_A, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F };
-typedef enum PORTS PORTS;
+typedef unsigned char byte;
 
-enum PINS { PIN_0, PIN_1, PIN_2, PIN_3, PIN_4, PIN_5, PIN_6, PIN_7 };
-typedef enum PINS PINS;
-
-enum PIN_STATE { LOW, HIGH };
-typedef enum PIN_STATE PIN_STATE;
-
-enum PIN_MODES { INPUT, OUTPUT, INPUT_PULLUP, INPUT_PULLDOWN };
-typedef enum PIN_MODES PIN_MODES;
-
-enum PIN_PULL_STATE { UP, DOWN };
-typedef enum PIN_PULL_STATE PIN_PULL_STATE;
-
-#define PORT_PIN PORTS port, PINS pin
-#define A0 PORT_A, PIN_0
-#define A1 PORT_A, PIN_1
-#define A2 PORT_A, PIN_2
-#define A3 PORT_A, PIN_3
-#define A4 PORT_A, PIN_4
-#define A5 PORT_A, PIN_5
-#define A6 PORT_A, PIN_6
-#define A7 PORT_A, PIN_7
-#define B0 PORT_B, PIN_0
-#define B1 PORT_B, PIN_1
-#define B2 PORT_B, PIN_2
-#define B3 PORT_B, PIN_3
-#define B4 PORT_B, PIN_4
-#define B5 PORT_B, PIN_5
-#define B6 PORT_B, PIN_6
-#define B7 PORT_B, PIN_7
-#define C0 PORT_C, PIN_0
-#define C1 PORT_C, PIN_1
-#define C2 PORT_C, PIN_2
-#define C3 PORT_C, PIN_3
-#define C4 PORT_C, PIN_4
-#define C5 PORT_C, PIN_5
-#define C6 PORT_C, PIN_6
-#define C7 PORT_C, PIN_7
-#define D0 PORT_D, PIN_0
-#define D1 PORT_D, PIN_1
-#define D2 PORT_D, PIN_2
-#define D3 PORT_D, PIN_3
-#define D4 PORT_D, PIN_4
-#define D5 PORT_D, PIN_5
-#define D6 PORT_D, PIN_6
-#define D7 PORT_D, PIN_7
-#define E0 PORT_E, PIN_0
-#define E1 PORT_E, PIN_1
-#define E2 PORT_E, PIN_2
-#define E3 PORT_E, PIN_3
-#define E4 PORT_E, PIN_4
-#define E5 PORT_E, PIN_5
-#define E6 PORT_E, PIN_6
-#define E7 PORT_E, PIN_7
-#define F0 PORT_F, PIN_0
-#define F1 PORT_F, PIN_1
-#define F2 PORT_F, PIN_2
-#define F3 PORT_F, PIN_3
-#define F4 PORT_F, PIN_4
-#define F5 PORT_F, PIN_5
-#define F6 PORT_F, PIN_6
-#define F7 PORT_F, PIN_7
+// This enum represents ports and pins numbers
+// ex: 0x0301 -> PIN: 03, PORT: 01(PORT B)
+typedef enum PORT_PIN {
+    A0 = 0x0000,
+    A1 = 0x0100,
+    A2 = 0x0200,
+    A3 = 0x0300,
+    A4 = 0x0400,
+    A5 = 0x0500,
+    A6 = 0x0600,
+    A7 = 0x0700,
+    B0 = 0x0001,
+    B1 = 0x0101,
+    B2 = 0x0201,
+    B3 = 0x0301,
+    B4 = 0x0401,
+    B5 = 0x0501,
+    B6 = 0x0601,
+    B7 = 0x0701,
+    C0 = 0x0002,
+    C1 = 0x0102,
+    C2 = 0x0202,
+    C3 = 0x0302,
+    C4 = 0x0402,
+    C5 = 0x0502,
+    C6 = 0x0602,
+    C7 = 0x0702,
+    D0 = 0x0003,
+    D1 = 0x0103,
+    D2 = 0x0203,
+    D3 = 0x0303,
+    D4 = 0x0403,
+    D5 = 0x0503,
+    D6 = 0x0603,
+    D7 = 0x0703,
+    E0 = 0x0004,
+    E1 = 0x0104,
+    E2 = 0x0204,
+    E3 = 0x0304,
+    E4 = 0x0404,
+    E5 = 0x0504,
+    E6 = 0x0604,
+    E7 = 0x0704,
+    F0 = 0x0005,
+    F1 = 0x0105,
+    F2 = 0x0205,
+    F3 = 0x0305,
+    F4 = 0x0405,
+    F5 = 0x0505,
+    F6 = 0x0605,
+    F7 = 0x0705,
+} PORT_PIN;
 
 #endif // IO_H_

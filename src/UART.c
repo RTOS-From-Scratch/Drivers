@@ -4,8 +4,14 @@
 #include "inner/inner_IO.h"
 #include <math.h>
 
-#define UART0_BASE_ADDR     0x4000C000
-#define UART_MODULES_OFFSET 0x1000
+#define __UART0_BASE_ADDR     0x4000C000
+#define __UART_MODULES_OFFSET 0x1000
+#define PORT_B 1
+#define U1_PORTB_PCTL_ENCODE_INDEX 8
+#define __UART_MODULER_NUMBER(uart_module) (byte)uart_module
+#define __UART_PORT(uart_module) (byte)(uart_module >> BYTE_LENGTH)
+#define __UART_RxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 2))
+#define __UART_TxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 3))
 
 enum UART_Properties_t {
     __UART_DATA                     = 0x000,
@@ -21,19 +27,20 @@ enum UART_Properties_t {
     __UART_MASKED_INTERRUPT_STATUS  = 0x040,
     __UART_INTERRUPT_CLEAR          = 0x044,
     __UART_CLK_CONFIG               = 0xFC8
-};
+} UART_Properties_t;
 
-typedef enum UART_Properties_t UART_Properties_t;
-
-void UART_init( UART_BAUDRATE_t baudRate, UART_MODE_t mode, UART_MODULE_t )
+void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 {
+    byte module_number = __UART_MODULER_NUMBER(uart_module);
+    byte port          = __UART_PORT(uart_module);
+    byte RxPin         = __UART_RxPIN(uart_module);
+    byte TxPin         = __UART_TxPIN(uart_module);
+
 /************************************ CLK ************************************/
-    // if module number == 8, this means it is U1_PORTB
-    uint8_t new_module_num = (module_num == 8) ? 1 : module_num;
     // enable UART CLK
-    SYSCTL_RCGCUART_R |= (1 << new_module_num);
+    SYSCTL_RCGCUART_R |= (1 << module_number);
     // poll until UART is available
-    while( (SYSCTL_PPUART_R & (1 << new_module_num)) == 0);
+    while( (SYSCTL_PPUART_R & (1 << module_number)) == 0);
 
     // enable GPIO CLK
     SYSCTL_RCGCGPIO_R |= (1 << port);
@@ -42,46 +49,70 @@ void UART_init( UART_BAUDRATE_t baudRate, UART_MODE_t mode, UART_MODULE_t )
 /*****************************************************************************/
 
 /**************************** GPIO configurations ****************************/
-    unsigned long TxRx_port_addr                 = __IO_PORTS_ADDR[port];
-    unsigned long TxRx_bit_specific              = (1 << TxPin) | (1 << RxPin);
-    unsigned long TxRx_bit_specific_complemented = TxRx_bit_specific;
+    unsigned long uart_port_addr             = __IO_PORTS_ADDR[port];
+    unsigned long bits_specific;
+    unsigned long bits_specific_complemented;
+
+    if( mode == UART_MODE_Tx )
+        bits_specific              = (1 << TxPin);
+    else if( mode == UART_MODE_Rx )
+        bits_specific              = (1 << RxPin);
+    else
+        bits_specific              = (1 << TxPin) | (1 << RxPin);
+
+    bits_specific_complemented = ~bits_specific;
 
     // digital enable
-    IO_REG(TxRx_port_addr, __IO_DEN)   |= TxRx_bit_specific;
+    IO_REG(uart_port_addr, __IO_DEN)   |= bits_specific;
 
     // disable analog
-    IO_REG(TxRx_port_addr, __IO_DEN)   |= TxRx_bit_specific_complemented;
+    IO_REG(uart_port_addr, __IO_AMSEL) &= bits_specific_complemented;
 
     // enable alternative function
-    IO_REG(TxRx_port_addr, __IO_AFSEL) |= TxRx_bit_specific;
+    IO_REG(uart_port_addr, __IO_AFSEL) |= bits_specific;
 
     /* PCTL and Directiom configurations
      * Tx is always the next higher bit
      * and therefor each bit has 4 bits PCTL configuration
      * so, Tx = Rx << 4 */
+
+    if( port == PORT_B )
+        module_number = U1_PORTB_PCTL_ENCODE_INDEX;
+
+    // FIXME: same if checks, another solution ?
     if( mode == UART_MODE_Tx )
     {
-        IO_REG(TxRx_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_num] << 4;
-        IO_REG(TxRx_port_addr, __IO_DIR)  |= (1 << TxPin);
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (TxPin * 4)) ) |
+                PCTL_UART_Rx[module_number] << 4;
+        IO_REG(uart_port_addr, __IO_DIR)  |= (1 << TxPin);
     }
 
     else if( mode == UART_MODE_Rx )
     {
-        IO_REG(TxRx_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_num];
-        IO_REG(TxRx_port_addr, __IO_DIR)  |= ~(1 << RxPin);
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (RxPin * 4)) ) |
+                PCTL_UART_Rx[module_number];
+        IO_REG(uart_port_addr, __IO_DIR)  &= ~(1 << RxPin);
     }
 
     else    // Tx and Rx
     {
-        IO_REG(TxRx_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_num];
-        IO_REG(TxRx_port_addr, __IO_PCTL) |= PCTL_UART_Rx[module_num] << 4;
-        IO_REG(TxRx_port_addr, __IO_DIR)  |= (1 << TxPin);
-        IO_REG(TxRx_port_addr, __IO_DIR)  |= ~(1 << RxPin);
+        // Rx
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (RxPin * 4)) ) |
+                PCTL_UART_Rx[module_number];
+        IO_REG(uart_port_addr, __IO_DIR)  &= ~(1 << RxPin);
+        // Tx
+        IO_REG(uart_port_addr, __IO_PCTL) =
+                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (TxPin * 4)) ) |
+                PCTL_UART_Rx[module_number] << 4;
+        IO_REG(uart_port_addr, __IO_DIR)  |= (1 << TxPin);
     }
 /*****************************************************************************/
 
 /**************************** UART configurations ****************************/
-    unsigned long UART_base_addr = UART0_BASE_ADDR + ( UART_MODULES_OFFSET * new_module_num );
+    unsigned long UART_base_addr = __UART_ADDR[__UART_PORT(uart_module)];
 
     // disable while configure the module
     IO_REG(UART_base_addr, __UART_CONTROL) &= ~UART_CTL_UARTEN;
@@ -120,44 +151,44 @@ void UART_init( UART_BAUDRATE_t baudRate, UART_MODE_t mode, UART_MODULE_t )
 /*****************************************************************************/
 }
 
-void UART_write( UART_Tx_t Tx, char _char )
+void UART_write(UART_t uart_module, byte data )
 {
     // poll until the fifo has a space for new data
-    while( (IO_REG(Tx, __UART_FLAG) & UART_FR_TXFF) != 0 );
+    while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
 
-    IO_REG(Tx, __UART_DATA) = _char;
+    IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) = data;
 }
 
-void UART_writeLine( UART_Tx_t Tx , char* _char )
+void UART_writeLine(UART_t uart_module, byte *data )
 {
-    while(*_char != '\0')
+    while(*data != '\0')
     {
         // poll until the fifo has a space for new data
-        while( (IO_REG(Tx, __UART_FLAG) & UART_FR_TXFF) != 0 );
-        IO_REG(Tx, __UART_DATA) = *_char++;
+        while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
+        IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) = *data++;
     }
 }
 
-char UART_read( UART_Tx_t Rx )
+byte UART_read( UART_t uart_module )
 {
     // poll until there is new data
-    while( (IO_REG(Rx, __UART_FLAG) & UART_FR_RXFE) != 0 );
+    while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
 
     // return only 1 byte
-    return IO_REG(Rx, __UART_DATA) & 0xFF;
+    return IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
 }
 
-char* UART_readLine( UART_Rx_t Rx, char* buffer, size_t len )
+byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
 {
     size_t counter = 0;
 
     while(counter < len - 1)
     {
         // poll until there is new data
-        while( (IO_REG(Rx, __UART_FLAG) & UART_FR_RXFE) != 0 );
+        while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
 
         // get only 1 byte
-        buffer[counter] = IO_REG(Rx, __UART_DATA) & 0xFF;
+        buffer[counter] = IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
 
         if(buffer[counter] == '\n')
         {
@@ -171,7 +202,7 @@ char* UART_readLine( UART_Rx_t Rx, char* buffer, size_t len )
     return buffer;
 }
 
-void UART_disable( UART_MODE_t mode, UART_MODULE_t )
+void UART_disable( UART_t uart_module, UART_MODE_t mode )
 {
 
 }
