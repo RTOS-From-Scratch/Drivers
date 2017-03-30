@@ -98,7 +98,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 /*****************************************************************************/
 
 /**************************** UART configurations ****************************/
-    unsigned long UART_base_addr = __UART_ADDR[__UART_PORT(uart_module)];
+    unsigned long UART_base_addr = __UART_MODULES_ADDR[__UART_PORT(uart_module)];
 
     // disable while configure the module
     IO_REG(UART_base_addr, __UART_CONTROL) &= ~UART_CTL_UARTEN;
@@ -140,9 +140,9 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 void UART_write(UART_t uart_module, byte data )
 {
     // poll until the fifo has a space for new data
-    while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
+    while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
 
-    IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) = data;
+    IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) = data;
 }
 
 void UART_writeLine(UART_t uart_module, byte *data )
@@ -150,18 +150,18 @@ void UART_writeLine(UART_t uart_module, byte *data )
     while(*data != '\0')
     {
         // poll until the fifo has a space for new data
-        while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
-        IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) = *data++;
+        while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
+        IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) = *data++;
     }
 }
 
 byte UART_read( UART_t uart_module )
 {
     // poll until there is new data
-    while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
+    while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
 
     // return only 1 byte
-    return IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
+    return IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
 }
 
 byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
@@ -171,10 +171,10 @@ byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
     while(counter < len - 1)
     {
         // poll until there is new data
-        while( (IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
+        while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
 
         // get only 1 byte
-        buffer[counter] = IO_REG(__UART_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
+        buffer[counter] = IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
 
         if(buffer[counter] == '\n')
         {

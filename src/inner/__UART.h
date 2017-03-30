@@ -31,7 +31,7 @@
 //#define __U1_PORTB_TX_pin 1
 
 // UART address
-static const unsigned long __UART_ADDR[] = {
+static const unsigned long __UART_MODULES_ADDR[] = {
     0x4000C000,
     0x4000D000,
     0x4000E000,
