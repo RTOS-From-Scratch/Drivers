@@ -2,7 +2,8 @@
 #include "tm4c123gh6pm.h"
 #include "inner/__PCTL.h"
 #include "inner/__IO.h"
-#include <math.h>
+#include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
+#include "inner/__ISR_ctrl.h"
 
 #define __UART0_BASE_ADDR     0x4000C000
 #define __UART_MODULES_OFFSET 0x1000
@@ -34,8 +35,12 @@ enum UART_Properties_t {
 // save the pins used by the current used UARTs
 byte __UART_pinsUsed[__UART_MODULES_NUM] = { 0 };
 
-void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
+void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode, TaskID id )
 {
+    // disable interrupt
+    // critical section
+    __ISR_disable();
+
     byte module_number = __UART_MODULE_NUMBER(uart_module);
     byte port          = __UART_PORT(uart_module);
     byte RxPin         = __UART_RxPIN(uart_module);
@@ -43,6 +48,17 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     byte module_index  = port is PORT_B ?
                          U1_PORTB_MODULE_INDEX :
                          module_number;
+    byte bits_specific;
+    byte bits_specific_complemented;
+
+    if( mode is UART_MODE_Tx )
+        bits_specific              = (1 << TxPin);
+    else if( mode is UART_MODE_Rx )
+        bits_specific              = (1 << RxPin);
+    else
+        bits_specific              = (1 << TxPin) | (1 << RxPin);
+
+    bits_specific_complemented = ~bits_specific;
 
 /********************************** Checks **********************************/
     if((__IO_isPinsAvailable(port, bits_specific) is BUSY) or
@@ -57,6 +73,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     // save pins used by the UART
     __UART_pinsUsed[module_index] = bits_specific;
     __IO_setPinsBusy( port, bits_specific );
+    __nanokernel_Task_holdDriver( id, (__Driver_deinit_func)UART_deinit, uart_module );
 /***************************************************************************/
 
 /************************************ CLK ************************************/
@@ -158,6 +175,9 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     IO_REG(UART_base_addr, __UART_CONTROL) |= UART_CTL_UARTEN;
 
 /*****************************************************************************/
+
+    // re-enable interrupts
+    __ISR_enable();
 }
 
 void UART_write(UART_t uart_module, byte data )
@@ -211,7 +231,7 @@ byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
     return buffer;
 }
 
-void UART_disable( UART_t uart_module, UART_MODE_t mode )
+void UART_deinit( UART_t uart_module, UART_MODE_t mode )
 {
 
 }

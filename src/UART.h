@@ -50,11 +50,11 @@ typedef enum UART_BAUDRATE_t {
 } UART_BAUDRATE_t;
 
 // Functions
-void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode );
+void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode , TaskID id );
 void UART_write( UART_t uart_module , byte data );
 void UART_writeLine( UART_t uart_module, byte* data );
 byte UART_read( UART_t uart_module );
 byte* UART_readLine( UART_t uart_module, byte *buffer, size_t len );
-void UART_disable( UART_t uart_module, UART_MODE_t mode );
+void UART_deinit( UART_t uart_module, TaskID id );
 
 #endif // UART_H_

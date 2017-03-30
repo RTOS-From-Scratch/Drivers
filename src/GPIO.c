@@ -1,13 +1,8 @@
 #include "GPIO.h"
 #include "tm4c123gh6pm.h"
 #include "inner/__IO.h"
-
-//#define GPIO_PORTA_INT 0
-//#define GPIO_PORTB_INT 1
-//#define GPIO_PORTC_INT 2
-//#define GPIO_PORTD_INT 3
-//#define GPIO_PORTE_INT 4
-//#define GPIO_PORTF_INT 30
+#include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
+#include "inner/__ISR_ctrl.h"
 
 enum __GPIO_Properties {
     __GPIO_INTERRUPT_SENSE         = 0x404,
@@ -19,15 +14,16 @@ enum __GPIO_Properties {
     __GPIO_INTERRUPT_CLEAR         = 0x41C,
 };
 
-//static void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins );
-//static void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_complemented, PIN_MODES mode );
-
-void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
+void GPIO_init( PORT_PIN port_pin, PIN_MODES mode, TaskID id )
 {
+    // disable interrupt
+    // critical section
+    __ISR_disable();
+
     byte port = __PORT(port_pin);
     byte pin  = __PIN(port_pin);
-    uint32_t bit_specific = 1 << pin;
-    uint32_t bit_specific_complemented = ~bit_specific;
+    byte bit_specific = 1 << pin;
+    byte bit_specific_complemented = ~bit_specific;
 
     uint32_t port_addr = __IO_PORTS_ADDR[port];
 
@@ -42,6 +38,10 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
 /****************************** Kernel config ******************************/
     // mark this pin busy
     __IO_setPinsBusy(port, bit_specific);
+
+    // add this driver to the current task
+    // cast the deinit function to int type
+    __nanokernel_Task_holdDriver( id, (__Driver_deinit_func)GPIO_deinit, port_pin );
 /***************************************************************************/
 
     // enable clock for this port
@@ -88,6 +88,9 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
 
     // AMSEL
     REG_VALUE(port_addr + __IO_ANALOG_MODLE_SEL) &= bit_specific_complemented;
+
+    // re-enable interrupts
+    __ISR_enable();
 }
 
 void GPIO_write(PORT_PIN port_pin, PIN_STATE state )
