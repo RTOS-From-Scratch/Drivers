@@ -7,6 +7,7 @@
 #define __UART0_BASE_ADDR     0x4000C000
 #define __UART_MODULES_OFFSET 0x1000
 #define U1_PORTB_PCTL_ENCODE_INDEX 8
+#define U1_PORTB_MODULE_INDEX U1_PORTB_PCTL_ENCODE_INDEX
 #define __UART_MODULE_NUMBER(uart_module) (byte)uart_module
 #define __UART_PORT(uart_module) (byte)(uart_module >> BYTE_LENGTH)
 #define __UART_RxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 2))
@@ -28,12 +29,35 @@ enum UART_Properties_t {
     __UART_CLK_CONFIG               = 0xFC8
 } UART_Properties_t;
 
+#define __UART_MODULES_NUM 9
+#define NOT_USED 0
+// save the pins used by the current used UARTs
+byte __UART_pinsUsed[__UART_MODULES_NUM] = { 0 };
+
 void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 {
     byte module_number = __UART_MODULE_NUMBER(uart_module);
     byte port          = __UART_PORT(uart_module);
     byte RxPin         = __UART_RxPIN(uart_module);
     byte TxPin         = __UART_TxPIN(uart_module);
+    byte module_index  = port is PORT_B ?
+                         U1_PORTB_MODULE_INDEX :
+                         module_number;
+
+/********************************** Checks **********************************/
+    if((__IO_isPinsAvailable(port, bits_specific) is BUSY) or
+       (__UART_pinsUsed[module_index] is_not 0x0))
+    {
+        // TODO: do somthing
+        while(true);
+    }
+/****************************************************************************/
+
+/****************************** Kernel config ******************************/
+    // save pins used by the UART
+    __UART_pinsUsed[module_index] = bits_specific;
+    __IO_setPinsBusy( port, bits_specific );
+/***************************************************************************/
 
 /************************************ CLK ************************************/
     // enable UART CLK
@@ -60,7 +84,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     {
         IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
                 ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
-                PCTL_UART_Rx[module_number] << 4;
+                PCTL_UART_Rx[module_index] << 4;
         IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
     }
 
@@ -68,7 +92,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     {
         IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
                 ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
-                PCTL_UART_Rx[module_number];
+                PCTL_UART_Rx[module_index];
         IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
     }
 
@@ -77,12 +101,12 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
         // Rx
         IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
                 ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
-                PCTL_UART_Rx[module_number];
+                PCTL_UART_Rx[module_index];
         IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
         // Tx
         IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
                 ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
-                PCTL_UART_Rx[module_number] << 4;
+                PCTL_UART_Rx[module_index] << 4;
         IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
     }
 

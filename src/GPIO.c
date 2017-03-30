@@ -31,6 +31,19 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
 
     uint32_t port_addr = __IO_PORTS_ADDR[port];
 
+/********************************** Checks **********************************/
+    if(__IO_isPinsAvailable(port, bit_specific) is BUSY)
+    {
+        // TODO: the current task should be blocked
+        while(true);
+    }
+/****************************************************************************/
+
+/****************************** Kernel config ******************************/
+    // mark this pin busy
+    __IO_setPinsBusy(port, bit_specific);
+/***************************************************************************/
+
     // enable clock for this port
     SYSCTL_RCGCGPIO_R |= (1 << port);
 

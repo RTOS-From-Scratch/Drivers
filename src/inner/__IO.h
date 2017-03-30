@@ -1,12 +1,15 @@
 #ifndef INNER_IO_H_
 #define INNER_IO_H_
 
+#include <stdbool.h>
 #include "Misc/src/definitions.h"
 
 #define REG_VALUE(address) (*((volatile unsigned long *)( address )))
 #define IO_REG(port_address, offset) REG_VALUE(port_address + offset)
 #define __PORT(PORT_PIN) (unsigned char)(PORT_PIN)
 #define __PIN(PORT_PIN) (unsigned char)(PORT_PIN >> BYTE_LENGTH)
+#define BUSY false
+#define FREE true
 
 enum __IO_PROPERTIES
 {
@@ -35,5 +38,9 @@ typedef enum PORT { PORT_A, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F } PORT;
 
 typedef enum PIN {
     PIN_0, PIN_1, PIN_2, PIN_3, PIN_4, PIN_5, PIN_6, PIN_7 } PIN;
+
+void __IO_setPinsBusy(PORT port, byte pins);
+void __IO_setPinsFree(PORT port, byte pins);
+bool __IO_isPinsAvailable(PORT port, byte pins);
 
 #endif // INNER_IO_H_
