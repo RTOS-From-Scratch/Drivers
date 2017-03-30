@@ -1,6 +1,7 @@
 #ifndef UART_H_
 #define UART_H_
 
+#include "Misc/src/definitions.h"
 #include "IO.h"
 #include "inner/__UART.h"
 #include <stdint.h>
@@ -51,7 +52,7 @@ typedef enum UART_BAUDRATE_t {
 // Functions
 void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode );
 void UART_write( UART_t uart_module , byte data );
-void UART_writeLine( UART_t uart_module , byte* data );
+void UART_writeLine( UART_t uart_module, byte* data );
 byte UART_read( UART_t uart_module );
 byte* UART_readLine( UART_t uart_module, byte *buffer, size_t len );
 void UART_disable( UART_t uart_module, UART_MODE_t mode );

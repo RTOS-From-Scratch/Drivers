@@ -6,9 +6,8 @@
 
 #define __UART0_BASE_ADDR     0x4000C000
 #define __UART_MODULES_OFFSET 0x1000
-#define PORT_B 1
 #define U1_PORTB_PCTL_ENCODE_INDEX 8
-#define __UART_MODULER_NUMBER(uart_module) (byte)uart_module
+#define __UART_MODULE_NUMBER(uart_module) (byte)uart_module
 #define __UART_PORT(uart_module) (byte)(uart_module >> BYTE_LENGTH)
 #define __UART_RxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 2))
 #define __UART_TxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 3))
@@ -31,7 +30,7 @@ enum UART_Properties_t {
 
 void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 {
-    byte module_number = __UART_MODULER_NUMBER(uart_module);
+    byte module_number = __UART_MODULE_NUMBER(uart_module);
     byte port          = __UART_PORT(uart_module);
     byte RxPin         = __UART_RxPIN(uart_module);
     byte TxPin         = __UART_TxPIN(uart_module);
@@ -56,8 +55,8 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
      * and therefor each bit has 4 bits PCTL configuration
      * so, Tx = Rx << 4 */
 
-    // FIXME: same if checks, another solution ?
-    if( mode == UART_MODE_Tx )
+    // FIXME: same `if` checks, another solution ?
+    if( mode is UART_MODE_Tx )
     {
         IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
                 ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
@@ -65,7 +64,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
         IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
     }
 
-    else if( mode == UART_MODE_Rx )
+    else if( mode is UART_MODE_Rx )
     {
         IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
                 ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
@@ -176,7 +175,7 @@ byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
         // get only 1 byte
         buffer[counter] = IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
 
-        if(buffer[counter] == '\n')
+        if(buffer[counter] is '\n')
         {
             buffer[counter + 1] = '\0';
             break;

@@ -1,13 +1,12 @@
 #ifndef INNER_IO_H_
 #define INNER_IO_H_
 
+#include "Misc/src/definitions.h"
+
 #define REG_VALUE(address) (*((volatile unsigned long *)( address )))
 #define IO_REG(port_address, offset) REG_VALUE(port_address + offset)
-#define BYTE_LENGTH 8
 #define __PORT(PORT_PIN) (unsigned char)(PORT_PIN)
 #define __PIN(PORT_PIN) (unsigned char)(PORT_PIN >> BYTE_LENGTH)
-#define is ==
-#define is_not !=
 
 enum __IO_PROPERTIES
 {
@@ -31,5 +30,10 @@ static const unsigned long __IO_PORTS_ADDR [] = {
     0x40024000, // PORTE
     0x40025000, // PORTF
 };
+
+typedef enum PORT { PORT_A, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F } PORT;
+
+typedef enum PIN {
+    PIN_0, PIN_1, PIN_2, PIN_3, PIN_4, PIN_5, PIN_6, PIN_7 } PIN;
 
 #endif // INNER_IO_H_

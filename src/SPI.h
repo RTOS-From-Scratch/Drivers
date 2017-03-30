@@ -52,5 +52,6 @@ void SPI_initAsMaster( SPI_t spi_module, SPI_SPEED speed, SPI_MODE_t mode );
 void SPI_initAsSlave( SPI_t spi_module );
 void SPI_write( SPI_t spi_module, byte data );
 byte SPI_read( SPI_t spi_module );
+void SPI_deinit( SPI_t spi_module );
 
 #endif // SPI_H_

@@ -4,9 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "IO.h"
-
-typedef unsigned long ulong;
-#define hex_t ulong
+#include "Misc/src/definitions.h"
 
 typedef enum PIN_STATE {
     LOW,
