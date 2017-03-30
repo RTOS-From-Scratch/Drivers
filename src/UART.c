@@ -1,7 +1,7 @@
 #include "UART.h"
 #include "tm4c123gh6pm.h"
-#include "inner/PCTL.h"
-#include "inner/inner_IO.h"
+#include "inner/__PCTL.h"
+#include "inner/__IO.h"
 #include <math.h>
 
 #define __UART0_BASE_ADDR     0x4000C000
@@ -50,65 +50,51 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 
 /**************************** GPIO configurations ****************************/
     unsigned long uart_port_addr             = __IO_PORTS_ADDR[port];
-    unsigned long bits_specific;
-    unsigned long bits_specific_complemented;
-
-    if( mode == UART_MODE_Tx )
-        bits_specific              = (1 << TxPin);
-    else if( mode == UART_MODE_Rx )
-        bits_specific              = (1 << RxPin);
-    else
-        bits_specific              = (1 << TxPin) | (1 << RxPin);
-
-    bits_specific_complemented = ~bits_specific;
-
-    // digital enable
-    IO_REG(uart_port_addr, __IO_DEN)   |= bits_specific;
-
-    // disable analog
-    IO_REG(uart_port_addr, __IO_AMSEL) &= bits_specific_complemented;
-
-    // enable alternative function
-    IO_REG(uart_port_addr, __IO_AFSEL) |= bits_specific;
 
     /* PCTL and Directiom configurations
      * Tx is always the next higher bit
      * and therefor each bit has 4 bits PCTL configuration
      * so, Tx = Rx << 4 */
 
-    if( port == PORT_B )
-        module_number = U1_PORTB_PCTL_ENCODE_INDEX;
-
     // FIXME: same if checks, another solution ?
     if( mode == UART_MODE_Tx )
     {
-        IO_REG(uart_port_addr, __IO_PCTL) =
-                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (TxPin * 4)) ) |
+        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
+                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
                 PCTL_UART_Rx[module_number] << 4;
-        IO_REG(uart_port_addr, __IO_DIR)  |= (1 << TxPin);
+        IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
     }
 
     else if( mode == UART_MODE_Rx )
     {
-        IO_REG(uart_port_addr, __IO_PCTL) =
-                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (RxPin * 4)) ) |
+        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
+                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
                 PCTL_UART_Rx[module_number];
-        IO_REG(uart_port_addr, __IO_DIR)  &= ~(1 << RxPin);
+        IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
     }
 
     else    // Tx and Rx
     {
         // Rx
-        IO_REG(uart_port_addr, __IO_PCTL) =
-                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (RxPin * 4)) ) |
+        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
+                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
                 PCTL_UART_Rx[module_number];
-        IO_REG(uart_port_addr, __IO_DIR)  &= ~(1 << RxPin);
+        IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
         // Tx
-        IO_REG(uart_port_addr, __IO_PCTL) =
-                ( IO_REG(uart_port_addr, __IO_PCTL) & ~(0xF << (TxPin * 4)) ) |
+        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
+                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
                 PCTL_UART_Rx[module_number] << 4;
-        IO_REG(uart_port_addr, __IO_DIR)  |= (1 << TxPin);
+        IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
     }
+
+    // enable alternative function
+    IO_REG(uart_port_addr, __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
+
+    // disable analog
+    IO_REG(uart_port_addr, __IO_ANALOG_MODLE_SEL) &= bits_specific_complemented;
+
+    // digital enable
+    IO_REG(uart_port_addr, __IO_DIGITAL_ENABLE)   |= bits_specific;
 /*****************************************************************************/
 
 /**************************** UART configurations ****************************/

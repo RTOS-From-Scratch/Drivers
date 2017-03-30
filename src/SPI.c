@@ -1,5 +1,5 @@
 #include "SPI.h"
-#include "inner/inner_IO.h"
+#include "inner/__IO.h"
 #include "tm4c123gh6pm.h"
 
 #define __SPI_MODULE_NUMBER(spi_module) ((byte)spi_module)

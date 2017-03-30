@@ -3,7 +3,7 @@
 
 #include "IO.h"
 #include <stdint.h>
-#include "inner/inner_SPI.h"
+#include "inner/__SPI.h"
 
 //typedef enum SPI_MODULES {
 //    SPI_MODULE_0,

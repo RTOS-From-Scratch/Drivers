@@ -1,6 +1,6 @@
 #include "GPIO.h"
 #include "tm4c123gh6pm.h"
-#include "inner/inner_IO.h"
+#include "inner/__IO.h"
 
 //#define GPIO_PORTA_INT 0
 //#define GPIO_PORTB_INT 1
@@ -36,117 +36,46 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode )
 
     // unlock pins
     // F0, D7, C0, C1, C2, C3
-    if( (REG_VALUE( port_addr + __IO_CR ) & bit_specific) == 0 )
+    if( (REG_VALUE( port_addr + __IO_COMMIT ) & bit_specific) == 0 )
     {
         REG_VALUE( port_addr + __IO_LOCK ) = 0x4C4F434B;
-        REG_VALUE( port_addr + __IO_CR ) |= bit_specific;
+        REG_VALUE( port_addr + __IO_COMMIT ) |= bit_specific;
     }
-
-    // DEN
-    REG_VALUE(port_addr + __IO_DEN) |= bit_specific;
-
-    // AMSEL
-    REG_VALUE(port_addr + __IO_AMSEL) &= bit_specific_complemented;
-
-    // AFSEL
-    REG_VALUE(port_addr + __IO_AFSEL) &= bit_specific_complemented;
 
     // DIR
     switch( mode )
     {
         case INPUT:
-            REG_VALUE(port_addr + __IO_DIR) &= bit_specific_complemented;
+            REG_VALUE(port_addr + __IO_DIRECTION) &= bit_specific_complemented;
             break;
 
         case OUTPUT:
-            REG_VALUE(port_addr + __IO_DIR) |= bit_specific;
+            REG_VALUE(port_addr + __IO_DIRECTION) |= bit_specific;
             break;
 
         case INPUT_PULLUP:
-            REG_VALUE(port_addr + __IO_PUR) |= bit_specific;
-            REG_VALUE(port_addr + __IO_DIR) &= bit_specific_complemented;
+            REG_VALUE(port_addr + __IO_PULL_UP) |= bit_specific;
+            REG_VALUE(port_addr + __IO_DIRECTION) &= bit_specific_complemented;
             break;
 
         case INPUT_PULLDOWN:
-            REG_VALUE(port_addr + __IO_PDR) |= bit_specific;
-            REG_VALUE(port_addr + __IO_DIR)  &= bit_specific_complemented;
+            REG_VALUE(port_addr + __IO_PULL_DOWN) |= bit_specific;
+            REG_VALUE(port_addr + __IO_DIRECTION)  &= bit_specific_complemented;
             break;
     }
 
+    // AFSEL
+    REG_VALUE(port_addr + __IO_ALTERNATIVE_FUNC_SEL) &= bit_specific_complemented;
+
     // PCTL
-    REG_VALUE(__IO_PORTS_ADDR[port] + __IO_PCTL) &= ~( 0xF << (pin * 4) );
+    REG_VALUE(__IO_PORTS_ADDR[port] + __IO_PORT_CONTROL) &= ~( 0xF << (pin * 4) );
+
+    // DEN
+    REG_VALUE(port_addr + __IO_DIGITAL_ENABLE) |= bit_specific;
+
+    // AMSEL
+    REG_VALUE(port_addr + __IO_ANALOG_MODLE_SEL) &= bit_specific_complemented;
 }
-
-// TODO: didn't finished yet
-/*void GPIO_pinsMode( PORTS port, hex_t pins, PIN_MODES mode )
-{
-    GPIO_pinModeCore( port, pins, ~pins, mode );
-
-    // PCTL
-    GPIO_PCTL_Configuration( __IO_PORTS_ADDR[port] + __IO_PCTL, pins );
-}*/
-
-/*void GPIO_PCTL_Configuration( uint32_t PCTL_addr, hex_t pins )
-{
-    uint8_t pin  = 0x0;
-
-    for( uint8_t bit = 0x1 ; bit <= 0x80 && bit != 0x0; bit = bit << 1 )
-    {
-        if( (pins & bit) != 0x0 )
-        {
-            REG_VALUE(PCTL_addr) &= ~( 0xF << (pin * 4) );
-        }
-
-        pin++;
-    }
-}*/
-
-/*void GPIO_pinModeCore( PORTS port, long bit_specific, long bit_specific_complemented, PIN_MODES mode )
-{
-    uint32_t port_addr;
-
-    port_addr = __IO_PORTS_ADDR[ port ];
-
-    // enable clock for this port
-    SYSCTL_RCGCGPIO_R |= (1 << port);
-
-    // unlock pins
-    // TODO: we need to handle this only for
-    // F0, D7, C0, C1, C2, C3
-    REG_VALUE( port_addr + __IO_LOCK ) = 0x4C4F434B;
-    REG_VALUE( port_addr + __IO_CR ) |= bit_specific;
-
-    // DEN
-    REG_VALUE(port_addr + __IO_DEN) |= bit_specific;
-
-    // AMSEL
-    REG_VALUE(port_addr + __IO_AMSEL) &= bit_specific_complemented;
-
-    // AFSEL
-    REG_VALUE(port_addr + __IO_AFSEL) &= bit_specific_complemented;
-
-    // DIR
-    switch( mode )
-    {
-        case INPUT:
-            REG_VALUE(port_addr + __IO_DIR) &= bit_specific_complemented;
-            break;
-
-        case OUTPUT:
-            REG_VALUE(port_addr + __IO_DIR) |= bit_specific;
-            break;
-
-        case INPUT_PULLUP:
-            REG_VALUE(port_addr + __IO_PUR) |= bit_specific;
-            REG_VALUE(port_addr + __IO_DIR)  &= bit_specific_complemented;
-            break;
-
-        case INPUT_PULLDOWN:
-            REG_VALUE(port_addr + __IO_PDR) |= bit_specific;
-            REG_VALUE(port_addr + __IO_DIR)  &= bit_specific_complemented;
-            break;
-    }
-}*/
 
 void GPIO_write(PORT_PIN port_pin, PIN_STATE state )
 {

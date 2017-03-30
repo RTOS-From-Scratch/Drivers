@@ -12,15 +12,15 @@
 enum __IO_PROPERTIES
 {
     __IO_DATA  = 0x3FC,
-    __IO_DIR   = 0x400,
-    __IO_AFSEL = 0x420,
-    __IO_PUR   = 0x510,
-    __IO_PDR   = 0x514,
-    __IO_DEN   = 0x51C,
+    __IO_DIRECTION   = 0x400,
+    __IO_ALTERNATIVE_FUNC_SEL = 0x420,
+    __IO_PULL_UP   = 0x510,
+    __IO_PULL_DOWN   = 0x514,
+    __IO_DIGITAL_ENABLE   = 0x51C,
     __IO_LOCK  = 0x520,
-    __IO_CR    = 0x524,
-    __IO_AMSEL = 0x528,
-    __IO_PCTL  = 0x52C,
+    __IO_COMMIT    = 0x524,
+    __IO_ANALOG_MODLE_SEL = 0x528,
+    __IO_PORT_CONTROL  = 0x52C,
 };
 
 static const unsigned long __IO_PORTS_ADDR [] = {

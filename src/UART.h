@@ -2,7 +2,7 @@
 #define UART_H_
 
 #include "IO.h"
-#include "inner/inner_UART.h"
+#include "inner/__UART.h"
 #include <stdint.h>
 #include <stdlib.h>
 
