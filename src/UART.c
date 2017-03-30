@@ -231,7 +231,83 @@ byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
     return buffer;
 }
 
-void UART_deinit( UART_t uart_module, UART_MODE_t mode )
+void UART_deinit( UART_t uart_module, TaskID id )
 {
+    // disable interrupt
+    // critical section
+    __ISR_disable();
 
+    byte port         = __UART_PORT(uart_module);
+    byte module_num   = __UART_MODULE_NUMBER(uart_module);
+    byte module_index = port is PORT_B ?
+                        U1_PORTB_MODULE_INDEX :
+                        module_num;
+
+    if(__UART_pinsUsed[module_num] is 0)
+    {
+        // TODO: do something when it is not initiated
+        return;
+    }
+
+/*********************************** UART ***********************************/
+    // disable UART module
+    IO_REG(__UART_MODULES_ADDR[module_num], __UART_CONTROL) &= ~UART_CTL_UARTEN;
+    // disable UART CLK
+    SYSCTL_RCGCUART_R &= ~(1 << port);
+/****************************************************************************/
+
+/*********************************** GPIO ***********************************/
+    // disable DEN
+    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= ~(__UART_pinsUsed[module_num]);
+    // disable AFSEL
+    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~(__UART_pinsUsed[module_num]);
+/****************************************************************************/
+
+/********************************* Interrupt *********************************/
+    // disable interrupts if it's enabled
+    // TODO: Global interrupt
+    // IO_REG(__UART_MODULES_ADDR[__UART_MODULE_NUMBER(uart_module)], __UART_INTERRUPT_MASK) = 0;
+/*****************************************************************************/
+
+/********************************* free pins *********************************/
+    __IO_setPinsFree(port, __UART_pinsUsed[module_num]);
+    __UART_pinsUsed[module_index] = 0;
+    __nanokernel_Task_releaseDriver( id, (__Driver_deinit_func)UART_deinit, uart_module );
+/*****************************************************************************/
+
+    // re-enable interrupts
+    __ISR_enable();
 }
+
+/**************** This part is using for communication with PC ****************/
+#ifdef PC_COMMUNICATION
+    void __SYS_UART_init()
+    {
+        UART_init( U0,
+                   PC_COMMUNICATION_BAUDRATE,
+                   PC_COMMUNICATION_MODE_RxTx,
+                   TASKLESS );
+    }
+
+    void SYS_UART_write( byte data )
+    {
+        UART_write(U0, data);
+    }
+
+    void SYS_UART_writeLine( byte* data )
+    {
+        UART_writeLine(U0, data);
+    }
+
+    byte SYS_UART_read()
+    {
+        return UART_read(U0);
+    }
+
+    byte* SYS_UART_readLine( byte *buffer, size_t len )
+    {
+        return UART_readLine(U0, buffer, len);
+    }
+#endif // PC_COMMUNICATION
+
+/******************************************************************************/

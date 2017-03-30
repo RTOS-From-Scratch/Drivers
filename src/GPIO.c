@@ -116,95 +116,40 @@ PIN_STATE GPIO_read(PORT_PIN port_pin)
     return state;
 }
 
-/*void GPIO_pinsWrite( PORTS port, hex_t pins, hex_t state )
+void GPIO_deinit(PORT_PIN port_pin, TaskID id)
 {
-    // TODO: check if the clock is working on that port
-//    assert( (SYSCTL_RCGCGPIO_R & ON) is ON );
+    // disable interrupt
+    // critical section
+    __ISR_disable();
 
-//    if( state is HIGH )
-//        REG_VALUE( PORTS_ADDR[ port ] + GPIO_DATA ) |= ( 1 << pin );
+    byte port = __PORT(port_pin);
+    byte pin  = __PIN(port_pin);
+    byte bit_specific_complemented = ~(1 << pin);
 
-//    else if ( state is LOW )
-//        REG_VALUE( PORTS_ADDR[ port ] + GPIO_DATA ) &= ~( 1 << pin );
-}*/
+    if( __IO_isPinsAvailable( port, 1 << pin ) is BUSY )
+    {
+        // FIXME: find a better way
+        return;
+    }
 
-/*hex_t GPIO_pinsRead( PORTS port, hex_t pins )
-{
+/*********************************** GPIO ***********************************/
+    // disable DEN
+    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= bit_specific_complemented;
+    // remove PULLUP and PULLDOWN
+    IO_REG(__IO_PORTS_ADDR[port], __IO_PULL_UP)   &= bit_specific_complemented;
+    IO_REG(__IO_PORTS_ADDR[port], __IO_PULL_DOWN) &= bit_specific_complemented;
+/****************************************************************************/
 
-}*/
+/******************************** Interrupt ********************************/
+    // disable interrupts if it's enabled
+    // TODO: Global interrupt
+/***************************************************************************/
 
-/*void GPIO_ISR_edges( PORTS port, PINS pin, GPIO_ISR_EDGE ISR_edge, uint8_t priority, bool enable, void(*run)() )
-{
-    // TODO: check if the clock is working on that port
-    // TODO: check if it has level configuration
-    // Check if act as GPIO
+/********************************* free pins *********************************/
+    __IO_setPinsFree(port, 1 << pin);
+    __nanokernel_Task_releaseDriver( id, (__Driver_deinit_func)GPIO_deinit, port_pin );
+/*****************************************************************************/
 
-    // enable ISR trigger as egde
-    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_SENSE ) &= ~(1 << pin);
-
-    if( ISR_edge is Edge_FALLING )
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) &= ~(1 << pin);
-    else if(ISR_edge is Edge_RISING)
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) |= (1 << pin);
-    else if( ISR_edge is Edge_Both )
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_BOTH_EDGES ) |= (1 << pin);
-
-    // Enable interrupt globally
-
-    if( enable is true )
-        GPIO_ISR_enable(port, pin);
-    else
-        GPIO_ISR_disable(port, pin);
+    // re-enable interrupts
+    __ISR_enable();
 }
-
-void GPIO_ISR_levels( PORTS port, PINS pin, GPIO_ISR_LEVEL ISR_level, uint8_t priority, bool enable, void(*run)() )
-{
-    // TODO: check if the clock is working on that port
-    // TODO: check if it has edge configuration
-    // Check if act as GPIO
-
-    // enable ISR trigger as level
-    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_SENSE ) |= (1 << pin);
-
-    if( ISR_level is LEVEL_LOW )
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) &= ~(1 << pin);
-    else if( ISR_level is LEVEL_HIGH )
-        REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_EVENT ) |= (1 << pin);
-
-    if( enable is true )
-        GPIO_ISR_enable(port, pin);
-    else
-        GPIO_ISR_disable(port, pin);
-}
-
-void GPIO_ISR_enable( PORTS port, PINS pin )
-{
-    if( port is_not PORT_F )
-        NVIC_EN0_R |= port;
-    else if( port is PORT_F )
-        NVIC_EN0_R |= GPIO_PORTF_INT;
-
-    // disable masking
-    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_MASK ) |= (1 << pin);
-}
-
-void GPIO_ISR_disable( PORTS port, PINS pin )
-{
-    if( port is_not PORT_F )
-        NVIC_DIS0_R |= port;
-    else if( port is PORT_F )
-        NVIC_DIS0_R |= GPIO_PORTF_INT;
-
-    // enable masking
-    REG_VALUE( __IO_PORTS_ADDR[ port ] + __GPIO_INTERRUPT_MASK ) &= ~(1 << pin);
-}
-
-bool GPIO_ISR_getStatus( PORTS port )
-{
-    if( port is_not PORT_F )
-        return (NVIC_DIS0_R & port) is_not 0 ? false : true;
-    else if( port is PORT_F )
-        return (NVIC_DIS0_R & GPIO_PORTF_INT) is_not 0 ? false : true;
-
-    else return false;
-}*/

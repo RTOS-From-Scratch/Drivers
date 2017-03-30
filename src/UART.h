@@ -9,7 +9,6 @@
 
 // Tx_pin | Rx_pin | PORT | module_num
 typedef enum UART_t {
-    U0       = 0x01000000,
     U1_PORTC = 0x05040201,
     U1_PORTB = 0x01000101,
     U2       = 0x07060302,
@@ -56,5 +55,13 @@ void UART_writeLine( UART_t uart_module, byte* data );
 byte UART_read( UART_t uart_module );
 byte* UART_readLine( UART_t uart_module, byte *buffer, size_t len );
 void UART_deinit( UART_t uart_module, TaskID id );
+
+// this part is using for communication with PC
+#ifdef PC_COMMUNICATION
+    void SYS_UART_write( byte data );
+    void SYS_UART_writeLine( byte* data );
+    byte SYS_UART_read();
+    byte* SYS_UART_readLine( byte *buffer, size_t len );
+#endif // PC_COMMUNICATION
 
 #endif // UART_H_
