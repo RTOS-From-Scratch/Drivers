@@ -6,6 +6,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+void (*PeriodicTask)(void);
+
+//TODO:remove this
+#define NVIC_R 0xE000E000
+#define PRI4 0x410
+#define EN0 0x100
+
 //#define TIMER_MODULE_t      __Timer_Base_Addr timer_num, __Timer_Counter counter, PORT_PIN
 //#define TIMER0_A_PORTB      Timer_0, Timer_A, B6
 //#define TIMER0_A_PORTF      Timer_0, Timer_A, F0
@@ -48,9 +55,12 @@ typedef enum TIMER_MODULE_t
 } TIMER_MODULE_t;
 
 
-void Timer_init(TIMER_MODULE_t, __Timer_Mode mode, __Timer_Count_Dir dir, uint32_t value);
+
+void Timer_init(TIMER_MODULE_t, __Timer_Mode mode, __Timer_Count_Dir dir,  uint32_t value);
 bool Timer_start(TIMER_MODULE_t);
 bool Timer_isDone(TIMER_MODULE_t);
+
+
 
 
 #endif //TIMER_H_
