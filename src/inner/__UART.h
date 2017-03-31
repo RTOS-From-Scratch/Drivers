@@ -31,7 +31,7 @@
 //#define __U1_PORTB_TX_pin 1
 
 // UART address
-static const unsigned long __UART_ADDR[] = {
+static const unsigned long __UART_MODULES_ADDR[] = {
     0x4000C000,
     0x4000D000,
     0x4000E000,
@@ -41,6 +41,16 @@ static const unsigned long __UART_ADDR[] = {
     0x40012000,
     0x40013000
 };
+
+// TODO: this part should be part from CMake macros
+#define PC_COMMUNICATION_BAUDRATE 115200
+#define PC_COMMUNICATION_MODE_RxTx 2
+
+// UART0 is used only to communicate with PC
+#ifdef PC_COMMUNICATION
+    #define U0 0x01000000
+    void __SYS_UART_init();
+#endif // PC_COMMUNICATION
 
 /*// UART Tx/Rx port_pin
 #define UART_Rx_Tx_t    unsigned long addr, PORT_PIN

@@ -2,7 +2,7 @@
 #define TIMER_H_
 
 #include "IO.h"
-#include "inner/inner_Timer.h"
+#include "inner/__Timer.h"
 #include <stdint.h>
 #include <stdbool.h>
 

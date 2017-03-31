@@ -1,14 +1,14 @@
 #ifndef UART_H_
 #define UART_H_
 
+#include "Misc/src/definitions.h"
 #include "IO.h"
-#include "inner/inner_UART.h"
+#include "inner/__UART.h"
 #include <stdint.h>
 #include <stdlib.h>
 
 // Tx_pin | Rx_pin | PORT | module_num
 typedef enum UART_t {
-    U0       = 0x01000000,
     U1_PORTC = 0x05040201,
     U1_PORTB = 0x01000101,
     U2       = 0x07060302,
@@ -49,11 +49,19 @@ typedef enum UART_BAUDRATE_t {
 } UART_BAUDRATE_t;
 
 // Functions
-void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode );
+void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode , TaskID id );
 void UART_write( UART_t uart_module , byte data );
-void UART_writeLine( UART_t uart_module , byte* data );
+void UART_writeLine( UART_t uart_module, byte* data );
 byte UART_read( UART_t uart_module );
 byte* UART_readLine( UART_t uart_module, byte *buffer, size_t len );
-void UART_disable( UART_t uart_module, UART_MODE_t mode );
+void UART_deinit( UART_t uart_module, TaskID id );
+
+// this part is using for communication with PC
+#ifdef PC_COMMUNICATION
+    void SYS_UART_write( byte data );
+    void SYS_UART_writeLine( byte* data );
+    byte SYS_UART_read();
+    byte* SYS_UART_readLine( byte *buffer, size_t len );
+#endif // PC_COMMUNICATION
 
 #endif // UART_H_
