@@ -2,7 +2,7 @@
 #include "tm4c123gh6pm.h"
 #include "inner/__IO.h"
 #include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
-#include "inner/__ISR_ctrl.h"
+#include "ISR_ctrl.h"
 
 enum __GPIO_Properties {
     __GPIO_INTERRUPT_SENSE         = 0x404,
@@ -18,7 +18,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode, TaskID id )
 {
     // disable interrupt
     // critical section
-    __ISR_disable();
+    ISR_disable();
 
     byte port = __PORT(port_pin);
     byte pin  = __PIN(port_pin);
@@ -90,7 +90,7 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode, TaskID id )
     REG_VALUE(port_addr + __IO_ANALOG_MODLE_SEL) &= bit_specific_complemented;
 
     // re-enable interrupts
-    __ISR_enable();
+    ISR_enable();
 }
 
 void GPIO_write(PORT_PIN port_pin, PIN_STATE state )
@@ -120,7 +120,7 @@ void GPIO_deinit(PORT_PIN port_pin, TaskID id)
 {
     // disable interrupt
     // critical section
-    __ISR_disable();
+    ISR_disable();
 
     byte port = __PORT(port_pin);
     byte pin  = __PIN(port_pin);
@@ -151,5 +151,5 @@ void GPIO_deinit(PORT_PIN port_pin, TaskID id)
 /*****************************************************************************/
 
     // re-enable interrupts
-    __ISR_enable();
+    ISR_enable();
 }

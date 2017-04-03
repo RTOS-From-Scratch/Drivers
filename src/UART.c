@@ -3,7 +3,7 @@
 #include "inner/__PCTL.h"
 #include "inner/__IO.h"
 #include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
-#include "inner/__ISR_ctrl.h"
+#include "ISR_ctrl.h"
 
 #define __UART0_BASE_ADDR     0x4000C000
 #define __UART_MODULES_OFFSET 0x1000
@@ -39,7 +39,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode, 
 {
     // disable interrupt
     // critical section
-    __ISR_disable();
+    ISR_disable();
 
     byte module_number = __UART_MODULE_NUMBER(uart_module);
     byte port          = __UART_PORT(uart_module);
@@ -177,7 +177,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode, 
 /*****************************************************************************/
 
     // re-enable interrupts
-    __ISR_enable();
+    ISR_enable();
 }
 
 void UART_write(UART_t uart_module, byte data )
@@ -235,7 +235,7 @@ void UART_deinit( UART_t uart_module, TaskID id )
 {
     // disable interrupt
     // critical section
-    __ISR_disable();
+    ISR_disable();
 
     byte port         = __UART_PORT(uart_module);
     byte module_num   = __UART_MODULE_NUMBER(uart_module);
@@ -276,7 +276,7 @@ void UART_deinit( UART_t uart_module, TaskID id )
 /*****************************************************************************/
 
     // re-enable interrupts
-    __ISR_enable();
+    ISR_enable();
 }
 
 /**************** This part is using for communication with PC ****************/
