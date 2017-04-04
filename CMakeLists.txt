@@ -76,14 +76,14 @@ endif( NOT EXISTS ${PROJ_PATH}/tm4c123gh6pm.h )
 ############################# Network ############################
 # connect other parts to this part from RFS
 if(${RFS_TESTING_${PROJECT_NAME}})
-    SET(${PROJECT_NAME}_NetworkSources ../Kernel/src/nanokernel/inner/inner_nanokernel_task.h
+    SET(${PROJECT_NAME}_NetworkSources ../Kernel/src/nanokernel/inner/__nanokernel_task.h
                                        ../Kernel/src/nanokernel/nanokernel_task.c
                                        ../Kernel/src/nanokernel/nanokernel_scheduler.c
                                        ../Kernel/src/nanokernel/nanokernel_task_idle.c
                                        ../DataStructures/src/inverted_priority_queue.c
                                        ../DataStructures/src/priority_queue.c
-                                       ../DataStructures/src/inner/inner_priority_queue.c
-                                       ../Kernel/src/nanokernel/inner/inner_nanokernel.c )
+                                       ../DataStructures/src/inner/__priority_queue.c
+                                       ../Kernel/src/nanokernel/inner/__nanokernel.c )
 endif(${RFS_TESTING_${PROJECT_NAME}})
 ##################################################################
 
