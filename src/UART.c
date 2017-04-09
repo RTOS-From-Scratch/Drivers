@@ -2,6 +2,7 @@
 #include "tm4c123gh6pm.h"
 #include "inner/__PCTL.h"
 #include "inner/__IO.h"
+#include "inner/__driver.h"
 #include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
 #include "ISR_ctrl.h"
 
@@ -35,11 +36,13 @@ enum UART_Properties_t {
 // save the pins used by the current used UARTs
 byte __UART_pinsUsed[__UART_MODULES_NUM] = { 0 };
 
-void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode, TaskID id )
+void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 {
     // disable interrupt
     // critical section
-    ISR_disable();
+//    ISR_disable();
+
+    Module uart_module = driver->module;
 
     byte module_number = __UART_MODULE_NUMBER(uart_module);
     byte port          = __UART_PORT(uart_module);
@@ -60,21 +63,7 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode, 
 
     bits_specific_complemented = ~bits_specific;
 
-/********************************** Checks **********************************/
-    if((__IO_isPinsAvailable(port, bits_specific) is BUSY) or
-       (__UART_pinsUsed[module_index] is_not 0x0))
-    {
-        // TODO: do somthing
-        while(true);
-    }
-/****************************************************************************/
-
-/****************************** Kernel config ******************************/
-    // save pins used by the UART
-    __UART_pinsUsed[module_index] = bits_specific;
-    __IO_setPinsBusy( port, bits_specific );
-    __nanokernel_Task_holdDriver( id, (__Driver_deinit_func)UART_deinit, uart_module );
-/***************************************************************************/
+    __Driver_saveConfig( driver, port, bits_specific );
 
 /************************************ CLK ************************************/
     // enable UART CLK
@@ -177,19 +166,23 @@ void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode, 
 /*****************************************************************************/
 
     // re-enable interrupts
-    ISR_enable();
+//    ISR_enable();
 }
 
-void UART_write(UART_t uart_module, byte data )
+void UART_write( Driver *driver, byte data )
 {
+    Module uart_module = driver->module;
+
     // poll until the fifo has a space for new data
     while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
 
     IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) = data;
 }
 
-void UART_writeLine(UART_t uart_module, byte *data )
+void UART_writeLine( Driver *driver, byte *data )
 {
+    Module uart_module = driver->module;
+
     while(*data != '\0')
     {
         // poll until the fifo has a space for new data
@@ -198,8 +191,10 @@ void UART_writeLine(UART_t uart_module, byte *data )
     }
 }
 
-byte UART_read( UART_t uart_module )
+byte UART_read( Driver *driver )
 {
+    Module uart_module = driver->module;
+
     // poll until there is new data
     while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
 
@@ -207,9 +202,10 @@ byte UART_read( UART_t uart_module )
     return IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
 }
 
-byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
+byte *UART_readLine(Driver *driver, byte *buffer, size_t len )
 {
     size_t counter = 0;
+    Module uart_module = driver->module;
 
     while(counter < len - 1)
     {
@@ -231,23 +227,16 @@ byte *UART_readLine(UART_t uart_module, byte *buffer, size_t len )
     return buffer;
 }
 
-void UART_deinit( UART_t uart_module, TaskID id )
+void UART_deinit( Driver *driver )
 {
     // disable interrupt
     // critical section
-    ISR_disable();
+//    ISR_disable();
+
+    Module uart_module = driver->module;
 
     byte port         = __UART_PORT(uart_module);
     byte module_num   = __UART_MODULE_NUMBER(uart_module);
-    byte module_index = port is PORT_B ?
-                        U1_PORTB_MODULE_INDEX :
-                        module_num;
-
-    if(__UART_pinsUsed[module_num] is 0)
-    {
-        // TODO: do something when it is not initiated
-        return;
-    }
 
 /*********************************** UART ***********************************/
     // disable UART module
@@ -269,14 +258,12 @@ void UART_deinit( UART_t uart_module, TaskID id )
     // IO_REG(__UART_MODULES_ADDR[__UART_MODULE_NUMBER(uart_module)], __UART_INTERRUPT_MASK) = 0;
 /*****************************************************************************/
 
-/********************************* free pins *********************************/
-    __IO_setPinsFree(port, __UART_pinsUsed[module_num]);
-    __UART_pinsUsed[module_index] = 0;
-    __nanokernel_Task_releaseDriver( id, (__Driver_deinit_func)UART_deinit, uart_module );
-/*****************************************************************************/
+/******************************** free pins *********************************/
+    __Driver_clearSavedConfig(driver);
+/****************************************************************************/
 
     // re-enable interrupts
-    ISR_enable();
+//    ISR_enable();
 }
 
 /**************** This part is using for communication with PC ****************/

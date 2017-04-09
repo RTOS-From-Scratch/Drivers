@@ -4,6 +4,7 @@
 #include "IO.h"
 #include <stdint.h>
 #include "inner/__SPI.h"
+#include "Misc/src/definitions.h"
 
 //typedef enum SPI_MODULES {
 //    SPI_MODULE_0,

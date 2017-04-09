@@ -6,8 +6,9 @@
 
 #define REG_VALUE(address) (*((volatile unsigned long *)( address )))
 #define IO_REG(port_address, offset) REG_VALUE(port_address + offset)
-#define __PORT(PORT_PIN) (unsigned char)(PORT_PIN)
-#define __PIN(PORT_PIN) (unsigned char)(PORT_PIN >> BYTE_LENGTH)
+#define __GET_PORT(PORT_PIN) (unsigned char)(PORT_PIN)
+#define __GET_PIN(PORT_PIN) (unsigned char)(PORT_PIN >> BYTE_LENGTH)
+#define __PINS_TO_BITS(pins) (1 << pins)
 #define BUSY false
 #define FREE true
 
@@ -38,9 +39,5 @@ typedef enum PORT { PORT_A, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F } PORT;
 
 typedef enum PIN {
     PIN_0, PIN_1, PIN_2, PIN_3, PIN_4, PIN_5, PIN_6, PIN_7 } PIN;
-
-void __IO_setPinsBusy(PORT port, byte pins);
-void __IO_setPinsFree(PORT port, byte pins);
-bool __IO_isPinsAvailable(PORT port, byte pins);
 
 #endif // INNER_IO_H_

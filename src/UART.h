@@ -2,7 +2,7 @@
 #define UART_H_
 
 #include "Misc/src/definitions.h"
-#include "IO.h"
+#include "driver.h"
 #include "inner/__UART.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -49,12 +49,12 @@ typedef enum UART_BAUDRATE_t {
 } UART_BAUDRATE_t;
 
 // Functions
-void UART_init( UART_t uart_module, UART_BAUDRATE_t baudRate, UART_MODE_t mode , TaskID id );
-void UART_write( UART_t uart_module , byte data );
-void UART_writeLine( UART_t uart_module, byte* data );
-byte UART_read( UART_t uart_module );
-byte* UART_readLine( UART_t uart_module, byte *buffer, size_t len );
-void UART_deinit( UART_t uart_module, TaskID id );
+void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode );
+void UART_write( Driver *driver , byte data );
+void UART_writeLine( Driver *driver, byte* data );
+byte UART_read( Driver *driver );
+byte* UART_readLine( Driver *driver, byte *buffer, size_t len );
+void UART_deinit( Driver *driver );
 
 // this part is using for communication with PC
 #ifdef PC_COMMUNICATION

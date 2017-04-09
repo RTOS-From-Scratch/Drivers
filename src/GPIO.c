@@ -1,7 +1,7 @@
 #include "GPIO.h"
 #include "tm4c123gh6pm.h"
 #include "inner/__IO.h"
-#include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
+#include "inner/__driver.h"
 #include "ISR_ctrl.h"
 
 enum __GPIO_Properties {
@@ -14,35 +14,21 @@ enum __GPIO_Properties {
     __GPIO_INTERRUPT_CLEAR         = 0x41C,
 };
 
-void GPIO_init( PORT_PIN port_pin, PIN_MODES mode, TaskID id )
+void GPIO_init( Driver *driver, PIN_MODES mode )
 {
     // disable interrupt
     // critical section
-    ISR_disable();
+//    ISR_disable();
 
-    byte port = __PORT(port_pin);
-    byte pin  = __PIN(port_pin);
+    Module module = driver->module;
+    byte port = __GET_PORT(module);
+    byte pin  = __GET_PIN(module);
     byte bit_specific = 1 << pin;
     byte bit_specific_complemented = ~bit_specific;
 
     uint32_t port_addr = __IO_PORTS_ADDR[port];
 
-/********************************** Checks **********************************/
-    if(__IO_isPinsAvailable(port, bit_specific) is BUSY)
-    {
-        // TODO: the current task should be blocked
-        while(true);
-    }
-/****************************************************************************/
-
-/****************************** Kernel config ******************************/
-    // mark this pin busy
-    __IO_setPinsBusy(port, bit_specific);
-
-    // add this driver to the current task
-    // cast the deinit function to int type
-    __nanokernel_Task_holdDriver( id, (__Driver_deinit_func)GPIO_deinit, port_pin );
-/***************************************************************************/
+    __Driver_saveConfig( driver, port, bit_specific );
 
     // enable clock for this port
     SYSCTL_RCGCGPIO_R |= (1 << port);
@@ -90,47 +76,46 @@ void GPIO_init( PORT_PIN port_pin, PIN_MODES mode, TaskID id )
     REG_VALUE(port_addr + __IO_ANALOG_MODLE_SEL) &= bit_specific_complemented;
 
     // re-enable interrupts
-    ISR_enable();
+//    ISR_enable();
 }
 
-void GPIO_write(PORT_PIN port_pin, PIN_STATE state )
+void GPIO_write( Driver *driver, PIN_STATE state )
 {
     // TODO: check if the clock is working on that port
 //    assert( (SYSCTL_RCGCGPIO_R & ON) is ON );
 
+//    Module module = driver->data.module;
+    Module module = driver->module;
+
     if( state is HIGH )
-        REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) |= ( 1 << __PIN(port_pin) );
+        REG_VALUE( __IO_PORTS_ADDR[__GET_PORT(module)] + __IO_DATA ) |= ( 1 << __GET_PIN(module) );
 
     else if ( state is LOW )
-        REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) &= ~( 1 << __PIN(port_pin) );
+        REG_VALUE( __IO_PORTS_ADDR[__GET_PORT(module)] + __IO_DATA ) &= ~( 1 << __GET_PIN(module) );
 }
 
-PIN_STATE GPIO_read(PORT_PIN port_pin)
+PIN_STATE GPIO_read( Driver *driver)
 {
     // TODO: check if the clock is working on that port
 
     uint32_t state;
+    Module module = driver->module;
 
-    state = REG_VALUE( __IO_PORTS_ADDR[__PORT(port_pin)] + __IO_DATA ) & (1 << __PIN(port_pin));
+    state = REG_VALUE( __IO_PORTS_ADDR[__GET_PORT(module)] + __IO_DATA ) & (1 << __GET_PIN(module));
 
     return state;
 }
 
-void GPIO_deinit(PORT_PIN port_pin, TaskID id)
+void GPIO_deinit( Driver *driver )
 {
     // disable interrupt
     // critical section
-    ISR_disable();
+//    ISR_disable();
 
-    byte port = __PORT(port_pin);
-    byte pin  = __PIN(port_pin);
+    Module module = driver->module;
+    byte port = __GET_PORT(module);
+    byte pin  = __GET_PIN(module);
     byte bit_specific_complemented = ~(1 << pin);
-
-    if( __IO_isPinsAvailable( port, 1 << pin ) is BUSY )
-    {
-        // FIXME: find a better way
-        return;
-    }
 
 /*********************************** GPIO ***********************************/
     // disable DEN
@@ -145,11 +130,10 @@ void GPIO_deinit(PORT_PIN port_pin, TaskID id)
     // TODO: Global interrupt
 /***************************************************************************/
 
-/********************************* free pins *********************************/
-    __IO_setPinsFree(port, 1 << pin);
-    __nanokernel_Task_releaseDriver( id, (__Driver_deinit_func)GPIO_deinit, port_pin );
-/*****************************************************************************/
+/******************************** free pins *********************************/
+    __Driver_clearSavedConfig(driver);
+/****************************************************************************/
 
     // re-enable interrupts
-    ISR_enable();
+//    ISR_enable();
 }

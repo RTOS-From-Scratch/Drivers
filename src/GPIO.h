@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "IO.h"
+#include "driver.h"
 #include "Misc/src/definitions.h"
 
 typedef enum PIN_STATE {
@@ -19,9 +19,9 @@ typedef enum PIN_MODES {
 } PIN_MODES;
 
 // functions
-void GPIO_init(PORT_PIN port_pin, PIN_MODES mode, TaskID id);
-void GPIO_write( PORT_PIN port_pin, PIN_STATE state );
-PIN_STATE GPIO_read( PORT_PIN port_pin );
-void GPIO_deinit( PORT_PIN port_pin, TaskID id );
+void GPIO_init( Driver *driver, PIN_MODES mode );
+void GPIO_write( Driver *driver, PIN_STATE state );
+PIN_STATE GPIO_read( Driver *driver );
+void GPIO_deinit( Driver *driver );
 
 #endif // GPIO_H_

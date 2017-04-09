@@ -1,8 +1,6 @@
 #ifndef IO_H_
 #define IO_H_
 
-typedef unsigned char byte;
-
 // This enum represents ports and pins numbers
 // ex: 0x0301 -> PIN: 03, PORT: 01(PORT B)
 typedef enum PORT_PIN {
