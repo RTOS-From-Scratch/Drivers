@@ -4,5 +4,6 @@
 // These are declared in `inner/__ISR_ctrl.S`
 void ISR_enable();
 void ISR_disable();
+void ISR_WaitForInterrupt();
 
 #endif // ISR_CTRL_H_
