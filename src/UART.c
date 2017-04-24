@@ -5,6 +5,7 @@
 #include "inner/__driver.h"
 #include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
 #include "ISR_ctrl.h"
+#include "inner/__driver.h"
 
 #define __UART0_BASE_ADDR     0x4000C000
 #define __UART_MODULES_OFFSET 0x1000
@@ -268,32 +269,34 @@ void UART_deinit( Driver *driver )
 
 /**************** This part is using for communication with PC ****************/
 #ifdef PC_COMMUNICATION
+    Driver *__UART0;
+
     void __SYS_UART_init()
     {
-        UART_init( U0,
+        __UART0 = Driver_construct(UART, U0);
+        UART_init( __UART0,
                    PC_COMMUNICATION_BAUDRATE,
-                   PC_COMMUNICATION_MODE_RxTx,
-                   TASKLESS );
+                   PC_COMMUNICATION_MODE_RxTx );
     }
 
     void SYS_UART_write( byte data )
     {
-        UART_write(U0, data);
+        UART_write( __UART0, data );
     }
 
     void SYS_UART_writeLine( byte* data )
     {
-        UART_writeLine(U0, data);
+        UART_writeLine( __UART0, data );
     }
 
     byte SYS_UART_read()
     {
-        return UART_read(U0);
+        return UART_read( __UART0 );
     }
 
     byte* SYS_UART_readLine( byte *buffer, size_t len )
     {
-        return UART_readLine(U0, buffer, len);
+        return UART_readLine( __UART0, buffer, len );
     }
 #endif // PC_COMMUNICATION
 
