@@ -1,9 +1,8 @@
 #include "__IO.h"
 #include "tm4c123gh6pm.h"
+#include "Misc/src/definitions.h"
 
-#define PORTS_NUM 6
-
-static byte __IO_pinsUsed[PORTS_NUM] = {0};
+static byte __IO_pinsUsed[__PORTS_NUM] = {0};
 
 void __IO_setPinsBusy(PORT port, byte pins)
 {

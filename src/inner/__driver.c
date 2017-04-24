@@ -14,7 +14,7 @@
 typedef void (*__Driver_deinit_func)(struct __Driver *driver);
 
 // TODO: we need `__IO_config` array to be of different type
-static __Driver __IO_config[__GET_PORTS_NUM] = { 0 };
+static __Driver __IO_config[__PORTS_NUM] = { 0 };
 static __Driver __UART_config[__UART_MODULES_NUM] = { 0 };
 static __Driver __SPI_config[__SPI_MODULES_NUM] = { 0 };
 
