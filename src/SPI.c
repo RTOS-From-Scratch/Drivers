@@ -9,11 +9,7 @@
 #define __SPI_PORT(spi_module) __SPI_CLK_PORT(spi_module)
 #define __SPI_PIN(spi_module) __SPI_CLK_PIN(spi_module)
 
-#define __SPI_MODULES_NUM 5
-
-
-
-// TXRX(DIR|BIT_SPEC) <- RX(DIR|BIT_SPEC) <- TX(DIR|BIT_SPEC)
+// TX(DIR|BIT_SPEC), RX(DIR|BIT_SPEC), TXRX(DIR|BIT_SPEC)
 // each 4 bits represent one configuration for a mode
 byte __SPI_CONFIG[] = { 0xBB, 0x73, 0xBF };
 byte __SPI_PORTF_CONFIG[] = { 0xBB, 0x73, 0xBF };
@@ -22,8 +18,6 @@ byte __SPI_PORTF_CONFIG[] = { 0xBB, 0x73, 0xBF };
 #define __SPI_DIR_CONFIG(mode) ( (__SPI_CONFIG[mode] & 0xf0) >> 4 )
 #define __SPI_PORTF_CONFIG(mode) ( __SPI_CONFIG[mode] & 0xf )
 #define __SPI_PORTF_DIR_CONFIG(mode) ( (__SPI_CONFIG[mode] & 0xf0) >> 4 )
-
-
 
 #define __PCTL_SPI_MODULE_3 ( GPIO_PCTL_PD0_SSI3CLK | GPIO_PCTL_PD1_SSI3FSS | \
                               GPIO_PCTL_PD2_SSI3RX  | GPIO_PCTL_PD3_SSI3TX )
@@ -35,32 +29,7 @@ byte __SPI_PORTF_CONFIG[] = { 0xBB, 0x73, 0xBF };
 #define __PCTL_SPI_MODULES_CLR  ( ~( GPIO_PCTL_PA2_M | GPIO_PCTL_PA3_M | \
                                     GPIO_PCTL_PA4_M | GPIO_PCTL_PA5_M ) )
 
-#define __SPI_CLK_PIN_INDEX 0
-#define __SPI_Fss_PIN_INDEX 1
-#define __SPI_Rx_PIN_INDEX  2
-#define __SPI_Tx_PIN_INDEX  3
-
-#define __SPI_PORTF_CLK_PIN_INDEX 2
-#define __SPI_PORTF_Fss_PIN_INDEX 3
-#define __SPI_PORTF_Rx_PIN_INDEX  0
-#define __SPI_PORTF_Tx_PIN_INDEX  1
-
-#define __SPI_MASTER_IO_DIR (__SPI_CLK_PIN_INDEX | __SPI_Fss_PIN_INDEX)
-#define __SPI_MASTER_WITH_WRITE_IO_DIR (__SPI_CLK_PIN_INDEX | __SPI_Fss_PIN_INDEX | __SPI_Tx_PIN_INDEX)
-#define __SPI_PORTF_MASTER_IO_DIR (__SPI_PORTF_CLK_PIN_INDEX | __SPI_PORTF_Fss_PIN_INDEX)
-#define __SPI_PORTF_MASTER_WITH_WRITE_IO_DIR \
-            (__SPI_PORTF_CLK_PIN_INDEX | __SPI_PORTF_Fss_PIN_INDEX | __SPI_PORTF_Tx_PIN_INDEX)
-
-// replace first byte by the second one
-// TODO: test this algorithm
-#define __SPI_CONVERT_INTO_PORTF_CONFIG(old_config) \
-                (((old_config & 0b1100) >> 2) + ((old_config & 0b0011) << 2))
-
 #define SPI_MODULE_3 3
-
-#define __SPI_MODE_WRITE_ONLY   0b1011
-#define __SPI_MODE_READ_ONLY    0b0011
-#define __SPI_MODE_READ_WRITE   0b1011
 
 enum __SPI_Properties_t
 {
@@ -181,20 +150,20 @@ void SPI_initAsMaster(SPI_t spi_module, SPI_SPEED speed , SPI_MODE_t mode)
 
 void SPI_write( SPI_t spi_module, byte data )
 {
-    unsigned long spi_module_address = __SPI_MODULES_ADDR[__SPI_MODULE_NUMBER(spi_module)];
+    unsigned long base_address = __SPI_MODULES_ADDR[__SPI_MODULE_NUMBER(spi_module)];
 
     // poll until the fifo has a space for new data
-    while( (IO_REG(spi_module_address, __SPI_STATUS) & SSI_SR_TNF) == 0 );
-    IO_REG(spi_module_address, __SPI_DATA) = data;
+    while( (IO_REG(base_address, __SPI_STATUS) & SSI_SR_TNF) == 0 );
+    IO_REG(base_address, __SPI_DATA) = data;
 }
 
 byte SPI_read( SPI_t spi_module )
 {
-    unsigned long spi_module_address = __SPI_MODULES_ADDR[__SPI_MODULE_NUMBER(spi_module)];
+    unsigned long base_address = __SPI_MODULES_ADDR[__SPI_MODULE_NUMBER(spi_module)];
 
-    while( (IO_REG(spi_module_address, __SPI_STATUS) & SSI_SR_RNE) == 0 );
+    while( (IO_REG(base_address, __SPI_STATUS) & SSI_SR_RNE) == 0 );
     // FIXME: what if it's configured to use 16 bits ?
-    return IO_REG(spi_module_address, __SPI_DATA) & 0xFF;
+    return IO_REG(base_address, __SPI_DATA) & 0xFF;
 }
 
 void SPI_deinit( SPI_t spi_module )
