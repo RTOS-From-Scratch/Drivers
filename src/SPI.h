@@ -36,6 +36,7 @@ typedef enum SPI_t {
     SPI3        = 0x000303,
 } SPI_t;
 
+// full speed -> is half the system clk speed
 typedef enum SPI_SPEED {
     SPI_SPEED_FULL      = __SPI_SPEED_FULL_CLK_RATE,
     SPI_SPEED_HALF      = __SPI_SPEED_HALF_CLK_RATE,
