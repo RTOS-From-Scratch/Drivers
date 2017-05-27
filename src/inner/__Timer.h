@@ -1,7 +1,7 @@
 #ifndef INNER_Timer_H_
 #define INNER_Timer_H_
 
-#include "../IO.h"
+#include "../GPIO.h"
 #include <stdint.h>
 
 #define RCGC_BASE           0x400FE000

@@ -1,20 +1,13 @@
 #include "UART.h"
 #include "tm4c123gh6pm.h"
-#include "inner/__PCTL.h"
 #include "inner/__IO.h"
-#include "inner/__driver.h"
-#include "Kernel/src/nanokernel/inner/__nanokernel_task.h"
 #include "ISR_ctrl.h"
-#include "inner/__driver.h"
+#include "Misc/src/itoa.h"
+#include "PLL.h"
+#include <string.h>
 
-#define __UART0_BASE_ADDR     0x4000C000
-#define __UART_MODULES_OFFSET 0x1000
 #define U1_PORTB_PCTL_ENCODE_INDEX 8
-#define U1_PORTB_MODULE_INDEX U1_PORTB_PCTL_ENCODE_INDEX
-#define __UART_MODULE_NUMBER(uart_module) (byte)uart_module
-#define __UART_PORT(uart_module) (byte)(uart_module >> BYTE_LENGTH)
-#define __UART_RxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 2))
-#define __UART_TxPIN(uart_module) (byte)(uart_module >> (BYTE_LENGTH * 3))
+#define __UART_MODULES_NUM 9
 
 enum UART_Properties_t {
     __UART_DATA                     = 0x000,
@@ -32,45 +25,61 @@ enum UART_Properties_t {
     __UART_CLK_CONFIG               = 0xFC8
 } UART_Properties_t;
 
-#define __UART_MODULES_NUM 9
 #define NOT_USED 0
-// save the pins used by the current used UARTs
-byte __UART_pinsUsed[__UART_MODULES_NUM] = { 0 };
+#define PCTL_ENCODING          0b01
+#define PCTL_ENCODING_U1_PORTC 0b10
 
-void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
+struct UART_Driver {
+    byte module_num;
+    uint16_t Rx;
+    uint16_t Tx;
+};
+
+static const UART_Driver UARTs[__UART_MODULES_NUM] = {
+    { 0, A0, A1 },              // U0
+    { 1, C4, C5 },              // U1_PORTC
+    { 2, D6, D7 },              // U2
+    { 3, C6, C7 },              // U3
+    { 4, C4, C5 },              // U4
+    { 5, E4, E5 },              // U5
+    { 6, D4, D5 },              // U6
+    { 7, E0, E1 },              // U7
+    { 1, B0, B1 },              // U1_PORTB
+};
+
+// UART address
+static const unsigned long __UART_MODULES_ADDR[] = {
+    0x4000C000,         // U0
+    0x4000D000,         // U1
+    0x4000E000,         // U2
+    0x4000F000,         // U3
+    0x40010000,         // U4
+    0x40011000,         // U5
+    0x40012000,         // U6
+    0x40013000,         // U7
+};
+
+void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate )
 {
     // disable interrupt
     // critical section
 //    ISR_disable();
 
-    Module uart_module = driver->module;
+    byte port          = __GET_PORT(uart->Rx);
+    byte RxPin         = __GET_PIN(uart->Rx);
+    byte TxPin         = __GET_PIN(uart->Tx);
 
-    byte module_number = __UART_MODULE_NUMBER(uart_module);
-    byte port          = __UART_PORT(uart_module);
-    byte RxPin         = __UART_RxPIN(uart_module);
-    byte TxPin         = __UART_TxPIN(uart_module);
-    byte module_index  = port is PORT_B ?
-                         U1_PORTB_MODULE_INDEX :
-                         module_number;
-    byte bits_specific;
-    byte bits_specific_complemented;
+    unsigned long UART_base_addr = __UART_MODULES_ADDR[uart->module_num];
+    ClockSpeed sys_clk_speed = PLL_getClockSpeed();
 
-    if( mode is UART_MODE_Tx )
-        bits_specific              = (1 << TxPin);
-    else if( mode is UART_MODE_Rx )
-        bits_specific              = (1 << RxPin);
-    else
-        bits_specific              = (1 << TxPin) | (1 << RxPin);
-
-    bits_specific_complemented = ~bits_specific;
-
-    __Driver_saveConfig( driver, port, bits_specific );
+    byte bits_specific              = (1 << TxPin) | (1 << RxPin);
+    byte bits_specific_complemented = ~bits_specific;
 
 /************************************ CLK ************************************/
     // enable UART CLK
-    SYSCTL_RCGCUART_R |= (1 << module_number);
+    SYSCTL_RCGCUART_R |= (1 << uart->module_num);
     // poll until UART is available
-    while( (SYSCTL_PPUART_R & (1 << module_number)) == 0);
+    while( (SYSCTL_PPUART_R & (1 << uart->module_num)) == 0);
 
     // enable GPIO CLK
     SYSCTL_RCGCGPIO_R |= (1 << port);
@@ -81,41 +90,18 @@ void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 /**************************** GPIO configurations ****************************/
     unsigned long uart_port_addr             = __IO_PORTS_ADDR[port];
 
-    /* PCTL and Directiom configurations
-     * Tx is always the next higher bit
-     * and therefor each bit has 4 bits PCTL configuration
-     * so, Tx = Rx << 4 */
+    // PCTL
+    byte PCTL_encoding = (uart->module_num is U1_PORTC) and (port is __PORT_C) ?
+                         PCTL_ENCODING_U1_PORTC :
+                         PCTL_ENCODING;
+    IO_REG(uart_port_addr, __IO_PORT_CONTROL) &= ~(0xF << (RxPin * 4) |
+                                                   0xF << (TxPin * 4) );
+    IO_REG(uart_port_addr, __IO_PORT_CONTROL) += (PCTL_encoding << (RxPin * 4) |
+                                                  PCTL_encoding << (TxPin * 4) );
 
-    // FIXME: same `if` checks, another solution ?
-    if( mode is UART_MODE_Tx )
-    {
-        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
-                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
-                PCTL_UART_Rx[module_index] << 4;
-        IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
-    }
-
-    else if( mode is UART_MODE_Rx )
-    {
-        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
-                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
-                PCTL_UART_Rx[module_index];
-        IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
-    }
-
-    else    // Tx and Rx
-    {
-        // Rx
-        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
-                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (RxPin * 4)) ) |
-                PCTL_UART_Rx[module_index];
-        IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
-        // Tx
-        IO_REG(uart_port_addr, __IO_PORT_CONTROL) =
-                ( IO_REG(uart_port_addr, __IO_PORT_CONTROL) & ~(0xF << (TxPin * 4)) ) |
-                PCTL_UART_Rx[module_index] << 4;
-        IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
-    }
+    // Direction
+    IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
+    IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
 
     // enable alternative function
     IO_REG(uart_port_addr, __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
@@ -128,7 +114,6 @@ void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 /*****************************************************************************/
 
 /**************************** UART configurations ****************************/
-    unsigned long UART_base_addr = __UART_MODULES_ADDR[__UART_PORT(uart_module)];
 
     // disable while configure the module
     IO_REG(UART_base_addr, __UART_CONTROL) &= ~UART_CTL_UARTEN;
@@ -138,7 +123,7 @@ void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     // UARTFBRD[DIVFRAC] = integer(BRDF * 64 + 0.5)
     // ClkDiv (by default) = 16
     // TODO: clk need to be global configurational
-    float BRDI_float = 16000000.0f / ( 16.0f * baudRate );
+    float BRDI_float = (float)(sys_clk_speed * 1E6) / ( (float)16.0f * baudRate );
     uint16_t BRDI     = (uint16_t)BRDI_float;
     BRDI_float = BRDI_float - (long)BRDI_float;
     uint8_t BRDF      = (uint8_t)(BRDI_float * 64 + 0.5);
@@ -159,7 +144,7 @@ void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
     IO_REG(UART_base_addr, __UART_LINE_CONTROL) = UART_LCRH_WLEN_8 | UART_LCRH_FEN;
 
     // use system clk
-    IO_REG(UART_base_addr, __UART_CLK_CONFIG) = 0x0;
+    IO_REG(UART_base_addr, __UART_CLK_CONFIG) = UART_CC_CS_SYSCLK;
 
     // enable the module
     IO_REG(UART_base_addr, __UART_CONTROL) |= UART_CTL_UARTEN;
@@ -170,51 +155,77 @@ void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode )
 //    ISR_enable();
 }
 
-void UART_write( Driver *driver, byte data )
+void UART_print(UART_Driver *uart, char *data )
 {
-    Module uart_module = driver->module;
-
-    // poll until the fifo has a space for new data
-    while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
-
-    IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) = data;
-}
-
-void UART_writeLine( Driver *driver, byte *data )
-{
-    Module uart_module = driver->module;
+    unsigned long address = __UART_MODULES_ADDR[uart->module_num];
 
     while(*data != '\0')
     {
         // poll until the fifo has a space for new data
-        while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_TXFF) != 0 );
-        IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) = *data++;
+        while( (IO_REG(address, __UART_FLAG) & UART_FR_TXFF) != 0 );
+        IO_REG(address, __UART_DATA) = *data++;
     }
 }
 
-byte UART_read( Driver *driver )
+void UART_println( UART_Driver *uart, char* data )
 {
-    Module uart_module = driver->module;
+    UART_print(uart, data);
 
-    // poll until there is new data
-    while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
-
-    // return only 1 byte
-    return IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
+    // write newline
+    UART_print(uart, "\n");
 }
 
-byte *UART_readLine(Driver *driver, byte *buffer, size_t len )
+void UART_writeInt( UART_Driver *uart, int data )
+{
+    char buffer[11];
+    // int value, char* result, int base
+    itoa( data, buffer, 10 );
+    UART_write( uart, (byte *)buffer, strlen(buffer) );
+}
+
+void UART_write( UART_Driver *uart, byte *data, size_t data_len )
+{
+    unsigned long address = __UART_MODULES_ADDR[uart->module_num];
+
+    do {
+        // poll until the fifo has a space for new data
+        while( (IO_REG(address, __UART_FLAG) & UART_FR_TXFF) != 0 );
+        IO_REG(address, __UART_DATA) = *data++;
+    } while(--data_len);
+}
+
+byte UART_read( UART_Driver *uart )
+{
+    unsigned long address = __UART_MODULES_ADDR[uart->module_num];
+
+    // poll until there is new data
+    while( (IO_REG(address, __UART_FLAG) & UART_FR_RXFE) != 0 );
+
+    // return only 1 byte
+    return IO_REG(address, __UART_DATA) & 0xFF;
+}
+
+int UART_readInt( UART_Driver *uart )
+{
+    byte buffer[11];
+    UART_readAll( uart, buffer, 11 );
+
+    return atoi((char *)buffer);
+}
+
+void UART_readAll( UART_Driver *uart, byte *buffer, size_t len )
 {
     size_t counter = 0;
-    Module uart_module = driver->module;
+
+    unsigned long address = __UART_MODULES_ADDR[uart->module_num];
 
     while(counter < len - 1)
     {
         // poll until there is new data
-        while( (IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_FLAG) & UART_FR_RXFE) != 0 );
+        while( (IO_REG(address, __UART_FLAG) & UART_FR_RXFE) != 0 );
 
         // get only 1 byte
-        buffer[counter] = IO_REG(__UART_MODULES_ADDR[__UART_PORT(uart_module)], __UART_DATA) & 0xFF;
+        buffer[counter] = IO_REG(address, __UART_DATA) & 0xFF;
 
         if(buffer[counter] is '\n')
         {
@@ -224,33 +235,58 @@ byte *UART_readLine(Driver *driver, byte *buffer, size_t len )
 
         counter++;
     }
-
-    return buffer;
 }
 
-void UART_deinit( Driver *driver )
+const UART_Driver* __UART_getModule( UART_t uart )
+{
+    const UART_Driver* driver = &UARTs[uart];
+
+    if( __UART_isAvailable(uart) is false )
+        return NULL;
+
+    // call Driver APIs to mark pins busy.
+    __Driver_setPinBusy( driver->Rx );
+    __Driver_setPinBusy( driver->Tx );
+
+    return &UARTs[uart];
+}
+
+bool __UART_isAvailable( UART_t uart )
+{
+    const UART_Driver* driver = &UARTs[uart];
+
+    // call Driver APIs to check pin availability.
+    // check the clock of the driver
+    // check Rx Tx availability
+    if( (SYSCTL_RCGCUART_R & (1 << driver->module_num)) NOT_EQUAL 0 )
+        if( ! __Driver_isPinAvailable(driver->Rx) )
+            if( ! __Driver_isPinAvailable(driver->Tx) )
+                return false;
+
+    return true;
+}
+
+void UART_deinit( UART_Driver *uart )
 {
     // disable interrupt
     // critical section
 //    ISR_disable();
 
-    Module uart_module = driver->module;
-
-    byte port         = __UART_PORT(uart_module);
-    byte module_num   = __UART_MODULE_NUMBER(uart_module);
+    unsigned long config = (1 << uart->Rx) | (1 << uart->Tx);
+    byte port         = __GET_PORT(uart->Rx);
 
 /*********************************** UART ***********************************/
     // disable UART module
-    IO_REG(__UART_MODULES_ADDR[module_num], __UART_CONTROL) &= ~UART_CTL_UARTEN;
+    IO_REG(__UART_MODULES_ADDR[uart->module_num], __UART_CONTROL) &= ~UART_CTL_UARTEN;
     // disable UART CLK
-    SYSCTL_RCGCUART_R &= ~(1 << port);
+    SYSCTL_RCGCUART_R &= ~(1 << uart->module_num);
 /****************************************************************************/
 
 /*********************************** GPIO ***********************************/
     // disable DEN
-    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= ~(__UART_pinsUsed[module_num]);
+    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= ~config;
     // disable AFSEL
-    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~(__UART_pinsUsed[module_num]);
+    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~config;
 /****************************************************************************/
 
 /********************************* Interrupt *********************************/
@@ -260,7 +296,8 @@ void UART_deinit( Driver *driver )
 /*****************************************************************************/
 
 /******************************** free pins *********************************/
-    __Driver_clearSavedConfig(driver);
+    __Driver_setPinFree(uart->Rx);
+    __Driver_setPinFree(uart->Tx);
 /****************************************************************************/
 
     // re-enable interrupts
@@ -269,24 +306,35 @@ void UART_deinit( Driver *driver )
 
 /**************** This part is using for communication with PC ****************/
 #ifdef PC_COMMUNICATION
-    Driver *__UART0;
+    #define U0 0
+    // TODO: this part should be in cmake file as an option
+    #define PC_COMMUNICATION_BAUDRATE UART_BAUDRATE_115200
+    Driver *__UART0 = NULL;
 
-    void __SYS_UART_init()
+    void SYS_UART_init()
     {
         __UART0 = Driver_construct(UART, U0);
-        UART_init( __UART0,
-                   PC_COMMUNICATION_BAUDRATE,
-                   PC_COMMUNICATION_MODE_RxTx );
+        UART_init( __UART0, PC_COMMUNICATION_BAUDRATE );
     }
 
-    void SYS_UART_write( byte data )
+    void SYS_UART_writeInt( int data )
     {
-        UART_write( __UART0, data );
+        UART_writeInt(__UART0, data);
     }
 
-    void SYS_UART_writeLine( byte* data )
+    void SYS_UART_write( byte* data, size_t data_len )
     {
-        UART_writeLine( __UART0, data );
+        UART_write( __UART0, data, data_len );
+    }
+
+    void SYS_UART_print( char* data )
+    {
+        UART_print(__UART0, data);
+    }
+
+    void SYS_UART_println( char* data )
+    {
+        UART_println(__UART0, data);
     }
 
     byte SYS_UART_read()
@@ -294,9 +342,14 @@ void UART_deinit( Driver *driver )
         return UART_read( __UART0 );
     }
 
-    byte* SYS_UART_readLine( byte *buffer, size_t len )
+    int SYS_UART_readInt()
     {
-        return UART_readLine( __UART0, buffer, len );
+        return UART_readInt(__UART0);
+    }
+
+    void SYS_UART_readAll( byte *buffer, size_t len )
+    {
+        return UART_readAll( __UART0, buffer, len );
     }
 #endif // PC_COMMUNICATION
 

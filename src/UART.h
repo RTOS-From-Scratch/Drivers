@@ -3,65 +3,74 @@
 
 #include "Misc/src/definitions.h"
 #include "driver.h"
-#include "inner/__UART.h"
 #include <stdint.h>
 #include <stdlib.h>
 
-// Tx_pin | Rx_pin | PORT | module_num
-typedef enum UART_t {
-    U1_PORTC = 0x05040201,
-    U1_PORTB = 0x01000101,
-    U2       = 0x07060302,
-    U3       = 0x07060303,
-    U4       = 0x05040204,
-    U5       = 0x05040405,
-    U6       = 0x05040306,
-    U7       = 0x01000407,
-} UART_t;
+PUBLIC
+    typedef enum UART_t {
+        U1_PORTC = 1,
+        U2,
+        U3,
+        U4,
+        U5,
+        U6,
+        U7,
+        U1_PORTB,
+    } UART_t;
 
-typedef enum UART_MODE_t {
-    UART_MODE_Tx,
-    UART_MODE_Rx,
-    UART_MODE_TxRx
-} UART_MODE_t;
+    typedef enum UART_BAUDRATE {
+        UART_BAUDRATE_110    = 110,
+        UART_BAUDRATE_300    = 300,
+        UART_BAUDRATE_600    = 600,
+        UART_BAUDRATE_1200   = 1200,
+        UART_BAUDRATE_2400   = 2400,
+        UART_BAUDRATE_4800   = 4800,
+        UART_BAUDRATE_9600   = 9600,
+        UART_BAUDRATE_14400  = 14400,
+        UART_BAUDRATE_19200  = 19200,
+        UART_BAUDRATE_28800  = 28800,
+        UART_BAUDRATE_38400  = 38400,
+        UART_BAUDRATE_56000  = 56000,
+        UART_BAUDRATE_57600  = 57600,
+        UART_BAUDRATE_115200 = 115200,
+        UART_BAUDRATE_128000 = 128000,
+        UART_BAUDRATE_153600 = 153600,
+        UART_BAUDRATE_230400 = 230400,
+        UART_BAUDRATE_256000 = 256000,
+        UART_BAUDRATE_460800 = 460800,
+        UART_BAUDRATE_921600 = 921600
+    } UART_BAUDRATE;
 
-typedef enum UART_BAUDRATE_t {
-    BR_110    = 110,
-    BR_300    = 300,
-    BR_600    = 600,
-    BR_1200   = 1200,
-    BR_2400   = 2400,
-    BR_4800   = 4800,
-    BR_9600   = 9600,
-    BR_14400  = 14400,
-    BR_19200  = 19200,
-    BR_28800  = 28800,
-    BR_38400  = 38400,
-    BR_56000  = 56000,
-    BR_57600  = 57600,
-    BR_115200 = 115200,
-    BR_128000 = 128000,
-    BR_153600 = 153600,
-    BR_230400 = 230400,
-    BR_256000 = 256000,
-    BR_460800 = 460800,
-    BR_921600 = 921600
-} UART_BAUDRATE_t;
+    typedef struct UART_Driver UART_Driver;
 
-// Functions
-void UART_init( Driver *driver, UART_BAUDRATE_t baudRate, UART_MODE_t mode );
-void UART_write( Driver *driver , byte data );
-void UART_writeLine( Driver *driver, byte* data );
-byte UART_read( Driver *driver );
-byte* UART_readLine( Driver *driver, byte *buffer, size_t len );
-void UART_deinit( Driver *driver );
+    // Functions
+    void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate );
+    void UART_writeInt( UART_Driver *uart , int data );
+    void UART_write( UART_Driver *uart, byte* data, size_t data_len );
+    void UART_print( UART_Driver *uart, char* data );
+    void UART_println( UART_Driver *uart, char* data );
+    byte UART_read( UART_Driver *uart );
+    int UART_readInt( UART_Driver *uart );
+    void UART_readAll( UART_Driver *uart, byte *buffer, size_t len );
+    void UART_deinit( UART_Driver *uart );
 
-// this part is using for communication with PC
-#ifdef PC_COMMUNICATION
-    void SYS_UART_write( byte data );
-    void SYS_UART_writeLine( byte* data );
-    byte SYS_UART_read();
-    byte* SYS_UART_readLine( byte *buffer, size_t len );
-#endif // PC_COMMUNICATION
+    // this part is using for communication with PC
+    #ifdef PC_COMMUNICATION
+        void SYS_UART_init();
+        void SYS_UART_writeInt( int data );
+        void SYS_UART_write( byte* data, size_t data_len );
+        void SYS_UART_print( char* data );
+        void SYS_UART_println( char* data );
+        byte SYS_UART_read();
+        int SYS_UART_readInt();
+        void SYS_UART_readAll( byte *buffer, size_t len );
+    #endif // PC_COMMUNICATION
+
+/******************************************************************************/
+
+PRIVATE
+    // WARNING: These functions shouldn't be called or used
+    const UART_Driver* __UART_getModule( UART_t uart );
+    bool __UART_isAvailable( UART_t uart );
 
 #endif // UART_H_
