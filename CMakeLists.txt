@@ -76,9 +76,7 @@ endif( NOT EXISTS ${PROJ_PATH}/tm4c123gh6pm.h )
 ############################# Network ############################
 # connect other parts to this part from RFS
 if(${RFS_TESTING_${PROJECT_NAME}})
-    SET( ${PROJECT_NAME}_NetworkSources ../DataStructures/src/inverted_priority_queue.c
-                                        ../DataStructures/src/priority_queue.c
-                                        ../DataStructures/src/inner/__priority_queue.c )
+    SET( ${PROJECT_NAME}_NetworkSources ../Misc/src/inner/__assert.c)
 endif(${RFS_TESTING_${PROJECT_NAME}})
 ##################################################################
 
