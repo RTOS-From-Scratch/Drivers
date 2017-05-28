@@ -26,7 +26,6 @@ void Timer_init(TIMER_MODULE_t timer_module, __Timer_Mode mode, __Timer_Count_Di
     //if timer is periodic mode
     if(mode)
         IO_REG(__Timer_Addr[timer_num], TIMER_TA_M_R) |= 0x2;
-
     //if timer is one shot mode
     else
         IO_REG(__Timer_Addr[timer_num], TIMER_TA_M_R) = 0x1;
@@ -115,5 +114,3 @@ uint32_t Timer_sysTimer_getCurrentDelay()
 {
     return IO_REG(__Timer_Addr[TIMER0], TIMER_TA_MATCHR);
 }
-
-
