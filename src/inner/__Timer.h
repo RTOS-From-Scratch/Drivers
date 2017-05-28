@@ -10,15 +10,21 @@
 
 enum __timer_reg_offset
 {
-    TIMER_CTL_R = 0x00C,
-    TIMER_CFG_R = 0x000,
-    TIMER_TA_M_R = 0x004,
-    TIMER_TB_M_R = 0x008,
-    TIMER_TA_IL_R = 0x028,
-    TIMER_TB_IL_R = 0x02C,
-    TIMER_MRIS = 0x01C,
-    TIMER_IC_R = 0X024,
-    TIMER_IM_R = 0x018
+    TIMER_PP        = 0xFC0,
+    TIMER_CTL_R     = 0x00C,
+    TIMER_CFG_R     = 0x000,
+    TIMER_TA_M_R    = 0x004,
+    TIMER_TB_M_R    = 0x008,
+    TIMER_TA_IL_R   = 0x028,
+    TIMER_TB_IL_R   = 0x02C,
+    TIMER_MRIS      = 0x01C,
+    TIMER_IC_R      = 0X024,
+    TIMER_IM_R      = 0x018,
+    TIMER_TA_V      = 0x050,
+    TIMER_TA_MATCHR = 0x030,
+    TIMER_TB_MATCHR = 0x034,
+    TIMER_TA_PR_R   = 0x038,
+    TIMER_MIS       = 0x020
 };
 typedef enum __timer_reg_offset __timer_reg_offset;
 
