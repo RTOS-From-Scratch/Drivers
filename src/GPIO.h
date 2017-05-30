@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "Misc/src/definitions.h"
+#include "ISR_ctrl.h"
 
 PUBLIC
     typedef enum PIN_STATE {
@@ -20,6 +21,11 @@ PUBLIC
         PIN_MODE_INPUT_PULLUP,
         PIN_MODE_INPUT_PULLDOWN
     } PIN_MODE;
+
+    #define INPUT PIN_MODE_INPUT
+    #define OUTPUT PIN_MODE_OUTPUT
+    #define INPUT_PULLUP PIN_MODE_INPUT_PULLUP
+    #define INPUT_PULLDOWN PIN_MODE_INPUT_PULLDOWN
 
     typedef enum GPIO_ISR_MODE {
         GPIO_ISR_MODE_Edge_FALLING,
@@ -87,9 +93,15 @@ PUBLIC
     // functions
     void GPIO_init( GPIO_Driver *gpio, PIN_MODE mode, bool autoEnable );
     // WARNING: mode here can only be `INPUT`, `INPUT_PULLUP` or `INPUT_PULLDOWN`
-    void GPIO_ISR_init( GPIO_Driver *gpio, PIN_MODE pin_mode, GPIO_ISR_MODE ISR_mode, void(*run)() );
-    void GPIO_ISR_enable( GPIO_Driver *gpio );
-    void GPIO_ISR_disable( GPIO_Driver *gpio );
+    void GPIO_ISR_init( GPIO_Driver *gpio,
+                        PIN_MODE pin_mode,
+                        GPIO_ISR_MODE ISR_mode,
+                        ISR_PRIORITY priority,
+                        void(*ISR_handler)(),
+                        bool autoEnable );
+    void GPIO_ISR_changePriroity( GPIO_Driver *gpio, ISR_PRIORITY newPriority );
+    void GPIO_enable( GPIO_Driver *gpio, bool enableISR );
+    void GPIO_disable( GPIO_Driver *gpio, bool disableISR );
     void GPIO_write( GPIO_Driver *gpio, PIN_STATE state );
     PIN_STATE GPIO_read( GPIO_Driver *gpio );
     void GPIO_deinit( GPIO_Driver *gpio );

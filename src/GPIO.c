@@ -1,7 +1,6 @@
 #include "GPIO.h"
 #include "tm4c123gh6pm.h"
 #include "inner/__IO.h"
-#include "ISR_ctrl.h"
 #include "Misc/src/assert.h"
 #include "inner/__ISR_vectortable.h"
 #include <stddef.h>
@@ -36,6 +35,12 @@ static const GPIO_Driver GPIOs[ __PORTS_NUM * __PINS_PER_PORT ] = {
     { E0 },{ E1 },{ E2 },{ E3 },{ E4 },{ E5 },{ E6 },{ E7 },
     { F0 },{ F1 },{ F2 },{ F3 },{ F4 },{ F5 },{ F6 },{ F7 },
 };
+
+typedef void(*__ISR_handler)();
+static __ISR_handler __GPIO_ISR_Handlers[ __PORTS_NUM ];
+static void __GPIO_ISR_handler();
+static void __GPIO_ISR_enable( GPIO_Driver *gpio );
+static void __GPIO_ISR_disable( GPIO_Driver *gpio );
 
 void GPIO_init( GPIO_Driver *gpio, PIN_MODE mode , bool autoEnable )
 {
@@ -100,8 +105,10 @@ void GPIO_init( GPIO_Driver *gpio, PIN_MODE mode , bool autoEnable )
 //    ISR_enable();
 }
 
-void GPIO_enable( GPIO_Driver *gpio )
+void GPIO_enable( GPIO_Driver *gpio, bool enableISR )
 {
+    if( enableISR )
+        __GPIO_ISR_enable(gpio);
     byte port = __GET_PORT(gpio->port_pin);
     byte pin = __GET_PIN(gpio->port_pin);
 
@@ -109,8 +116,10 @@ void GPIO_enable( GPIO_Driver *gpio )
     IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) |= 1 << pin;
 }
 
-void GPIO_disable( GPIO_Driver *gpio )
+void GPIO_disable( GPIO_Driver *gpio, bool disableISR )
 {
+    if( disableISR )
+        __GPIO_ISR_disable(gpio);
     byte port = __GET_PORT(gpio->port_pin);
     byte pin = __GET_PIN(gpio->port_pin);
 
@@ -118,11 +127,18 @@ void GPIO_disable( GPIO_Driver *gpio )
     IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= ~(1 << pin);
 }
 
-void GPIO_ISR_init( GPIO_Driver *gpio, PIN_MODE pin_mode, GPIO_ISR_MODE ISR_mode, void(*run)() )
+void GPIO_ISR_init( GPIO_Driver *gpio,
+                    PIN_MODE pin_mode,
+                    GPIO_ISR_MODE ISR_mode,
+                    ISR_PRIORITY priority,
+                    void(*ISR_handler)(),
+                    bool autoEnable )
 {
+    // FIXME: make sure that this GPIO has not been initiated before.
     GPIO_init( gpio, pin_mode, false );
 
-    intptr_t port_addr = __IO_PORTS_ADDR[__GET_PORT(gpio->port_pin)];
+    byte port = __GET_PORT(gpio->port_pin);
+    intptr_t port_addr = __IO_PORTS_ADDR[port];
     byte config = 1 << __GET_PIN(gpio->port_pin);
 
     switch( ISR_mode )
@@ -156,13 +172,73 @@ void GPIO_ISR_init( GPIO_Driver *gpio, PIN_MODE pin_mode, GPIO_ISR_MODE ISR_mode
             return;
     }
 
-    if( __GET_PORT(gpio->port_pin) is_not __PORT_F )
-        __ISR_register( ISR_GPIO_PORT_A + __GET_PORT(gpio->port_pin), run );
+    if( port is_not __PORT_F )
+    {
+        byte IRQ = ISR_GPIO_PORT_A + port;
+        __ISR_register( IRQ, __GPIO_ISR_handler );
+
+        // clear priority first
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( IRQ )) &= ~
+                ( 0x7 << __ISR_CTRL_GET_PRIORITY_index( IRQ ) );
+
+        // priority
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( IRQ )) |=
+                ( priority << __ISR_CTRL_GET_PRIORITY_index( IRQ ) );
+    }
+
     else
-        __ISR_register( ISR_GPIO_PORT_F, run );
+    {
+        __ISR_register( ISR_GPIO_PORT_F, __GPIO_ISR_handler );
+
+        // clear priority first
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( ISR_GPIO_PORT_F )) &= ~
+                ( 0x7 << __ISR_CTRL_GET_PRIORITY_index( ISR_GPIO_PORT_F ) );
+
+        // priority
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( ISR_GPIO_PORT_F )) |=
+                ( priority << __ISR_CTRL_GET_PRIORITY_index( ISR_GPIO_PORT_F ) );
+    }
+
+    __GPIO_ISR_Handlers[__GET_PORT(gpio->port_pin)] = ISR_handler;
+
+    if( autoEnable )
+        // enable ISR
+        GPIO_enable(gpio, true);
 }
 
-void GPIO_ISR_enable( GPIO_Driver *gpio )
+void GPIO_ISR_changePriroity( GPIO_Driver *gpio, ISR_PRIORITY newPriority )
+{
+    byte port = __GET_PORT(gpio->port_pin);
+
+    if( port is_not __PORT_F )
+    {
+        byte IRQ = ISR_GPIO_PORT_A + port;
+        __ISR_register( IRQ, __GPIO_ISR_handler );
+
+        // clear priority first
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( IRQ )) &= ~
+                ( 0x7 << __ISR_CTRL_GET_PRIORITY_index( IRQ ) );
+
+        // priority
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( IRQ )) |=
+                ( newPriority << __ISR_CTRL_GET_PRIORITY_index( IRQ ) );
+    }
+
+    else
+    {
+        __ISR_register( ISR_GPIO_PORT_F, __GPIO_ISR_handler );
+
+        // clear priority first
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( ISR_GPIO_PORT_F )) &= ~
+                ( 0x7 << __ISR_CTRL_GET_PRIORITY_index( ISR_GPIO_PORT_F ) );
+
+        // priority
+        REG_VALUE(__ISR_CTRL_GET_PRIORITY_ADDRESS( ISR_GPIO_PORT_F )) |=
+                ( newPriority << __ISR_CTRL_GET_PRIORITY_index( ISR_GPIO_PORT_F ) );
+    }
+}
+
+void __GPIO_ISR_enable( GPIO_Driver *gpio )
 {
     byte port = __GET_PORT(gpio->port_pin);
     byte pin = __GET_PIN(gpio->port_pin);
@@ -174,22 +250,22 @@ void GPIO_ISR_enable( GPIO_Driver *gpio )
 
     IO_REG( __IO_PORTS_ADDR[port], __GPIO_INTERRUPT_MASK ) |= (1 << pin);
 
-    GPIO_enable(gpio);
+//    GPIO_enable(gpio);
 }
 
-void GPIO_ISR_disable( GPIO_Driver *gpio )
+void __GPIO_ISR_disable( GPIO_Driver *gpio )
 {
     byte port = __GET_PORT(gpio->port_pin);
     byte pin = __GET_PIN(gpio->port_pin);
 
     if( port is_not __PORT_F )
-        NVIC_DIS0_R &= ~port;
+        NVIC_DIS0_R |= port;
     else
-        NVIC_DIS0_R &= ~GPIO_PORTF_INT;
+        NVIC_DIS0_R |= GPIO_PORTF_INT;
 
     IO_REG( __IO_PORTS_ADDR[port], __GPIO_INTERRUPT_MASK ) &= ~pin;
 
-    GPIO_disable(gpio);
+//    GPIO_disable(gpio);
 }
 
 void GPIO_write( GPIO_Driver *gpio, PIN_STATE state )
@@ -258,8 +334,8 @@ void GPIO_deinit( GPIO_Driver *gpio )
     byte bit_specific_complemented = ~(1 << pin);
 
 /*********************************** GPIO ***********************************/
-    // disable DEN
-    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= bit_specific_complemented;
+    GPIO_disable(gpio, true);
+
     // remove PULLUP and PULLDOWN
     IO_REG(__IO_PORTS_ADDR[port], __IO_PULL_UP)   &= bit_specific_complemented;
     IO_REG(__IO_PORTS_ADDR[port], __IO_PULL_DOWN) &= bit_specific_complemented;
@@ -268,6 +344,7 @@ void GPIO_deinit( GPIO_Driver *gpio )
 /******************************** Interrupt ********************************/
     // disable interrupts if it's enabled
     // TODO: Global interrupt
+    __GPIO_ISR_Handlers[port] = NULL;
 /***************************************************************************/
 
 /******************************** free pins *********************************/
@@ -276,4 +353,23 @@ void GPIO_deinit( GPIO_Driver *gpio )
 
     // re-enable interrupts
 //    ISR_enable();
+}
+
+void __GPIO_ISR_handler()
+{
+    // identify the port responsable for this interrupt
+    byte vectorNumber = NVIC_INT_CTRL_R & NVIC_INT_CTRL_VEC_ACT_M;
+    byte port;
+
+    if( vectorNumber <= ISR_GPIO_PORT_E )
+        port = vectorNumber - 16;
+    else
+        port = __PORT_F;
+
+    // acknowledge corresponding pin
+    IO_REG(__IO_PORTS_ADDR[port], __GPIO_INTERRUPT_CLEAR) |=
+            IO_REG(__IO_PORTS_ADDR[port], __GPIO_MASKED_INTERRUPT_STATUS);
+
+    // call the user-specific function
+    __GPIO_ISR_Handlers[port]();
 }
