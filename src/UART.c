@@ -5,6 +5,8 @@
 #include "Misc/src/itoa.h"
 #include "PLL.h"
 #include <string.h>
+#include "inner/__ISR_vectortable.h"
+#include "Misc/src/assert.h"
 
 #define U1_PORTB_PCTL_ENCODE_INDEX 8
 #define __UART_MODULES_NUM 9
@@ -33,18 +35,19 @@ struct UART_Driver {
     byte module_num;
     uint16_t Rx;
     uint16_t Tx;
+    byte ISR_vectorNum;
 };
 
 static const UART_Driver UARTs[__UART_MODULES_NUM] = {
-    { 0, A0, A1 },              // U0
-    { 1, C4, C5 },              // U1_PORTC
-    { 2, D6, D7 },              // U2
-    { 3, C6, C7 },              // U3
-    { 4, C4, C5 },              // U4
-    { 5, E4, E5 },              // U5
-    { 6, D4, D5 },              // U6
-    { 7, E0, E1 },              // U7
-    { 1, B0, B1 },              // U1_PORTB
+    { 0, A0, A1, ISR_UART_0 },              // U0
+    { 1, C4, C5, ISR_UART_1 },              // U1_PORTC
+    { 2, D6, D7, ISR_UART_2 },              // U2
+    { 3, C6, C7, ISR_UART_3 },              // U3
+    { 4, C4, C5, ISR_UART_4 },              // U4
+    { 5, E4, E5, ISR_UART_5 },              // U5
+    { 6, D4, D5, ISR_UART_6 },              // U6
+    { 7, E0, E1, ISR_UART_7 },              // U7
+    { 1, B0, B1, ISR_UART_1 },              // U1_PORTB
 };
 
 // UART address
@@ -59,11 +62,20 @@ static const unsigned long __UART_MODULES_ADDR[] = {
     0x40013000,         // U7
 };
 
-void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate )
+static void __UART_ISR_handler();
+static void __UART_ISR_enable( UART_Driver* uart );
+static void __UART_ISR_disable( UART_Driver* uart );
+
+typedef void(*__ISR_handler)();
+static __ISR_handler __UART_ISR_Handlers[ __UART_MODULES_NUM ];
+
+void UART_init(UART_Driver *uart, UART_BAUDRATE baudRate , bool autoEnable )
 {
     // disable interrupt
     // critical section
 //    ISR_disable();
+
+    ASSERT(uart is_not NULL);
 
     byte port          = __GET_PORT(uart->Rx);
     byte RxPin         = __GET_PIN(uart->Rx);
@@ -103,14 +115,16 @@ void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate )
     IO_REG(uart_port_addr, __IO_DIRECTION)  &= ~(1 << RxPin);
     IO_REG(uart_port_addr, __IO_DIRECTION)  |= (1 << TxPin);
 
-    // enable alternative function
-    IO_REG(uart_port_addr, __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
+    if( autoEnable )
+        // enable alternative function
+        IO_REG(uart_port_addr, __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
 
     // disable analog
     IO_REG(uart_port_addr, __IO_ANALOG_MODLE_SEL) &= bits_specific_complemented;
 
-    // digital enable
-    IO_REG(uart_port_addr, __IO_DIGITAL_ENABLE)   |= bits_specific;
+    if( autoEnable )
+        // digital enable
+        IO_REG(uart_port_addr, __IO_DIGITAL_ENABLE)   |= bits_specific;
 /*****************************************************************************/
 
 /**************************** UART configurations ****************************/
@@ -135,19 +149,19 @@ void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate )
     // TODO: this need to be redesigned
     /* No parity,
      * word length = 8bits,
-     * enable FIFOs,
+     * disable FIFOs,
      * 1 stop bit,
      * no break send(normal use)
      */
-    // IO_REG(UART_base_addr, __UART_LINE_CONTROL) = 0b01110000;
     IO_REG(UART_base_addr, __UART_LINE_CONTROL) = 0x0;
-    IO_REG(UART_base_addr, __UART_LINE_CONTROL) = UART_LCRH_WLEN_8 | UART_LCRH_FEN;
+    IO_REG(UART_base_addr, __UART_LINE_CONTROL) = UART_LCRH_WLEN_8/* | UART_LCRH_FEN*/;
 
     // use system clk
     IO_REG(UART_base_addr, __UART_CLK_CONFIG) = UART_CC_CS_SYSCLK;
 
-    // enable the module
-    IO_REG(UART_base_addr, __UART_CONTROL) |= UART_CTL_UARTEN;
+    if( autoEnable )
+        // enable the module
+        IO_REG(UART_base_addr, __UART_CONTROL) |= UART_CTL_UARTEN;
 
 /*****************************************************************************/
 
@@ -155,14 +169,105 @@ void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate )
 //    ISR_enable();
 }
 
+void UART_ISR_init( UART_Driver *uart,
+                    UART_BAUDRATE baudRate,
+                    UART_ISR_MODE ISR_mode,
+                    void(*ISR_handler)(),
+                    bool autoEnable )
+{
+    intptr_t address = __UART_MODULES_ADDR[uart->module_num];
+
+    // check if it's already initiated
+    // if so, disable it for configurations
+    if( (SYSCTL_RCGCUART_R & (1 << uart->module_num)) EQUAL 0 )
+        UART_init(uart, baudRate, false);
+    else if( (IO_REG(address, __UART_CONTROL) & UART_CTL_UARTEN) NOT_EQUAL 0 )
+            UART_disable(uart, false);
+
+    switch( ISR_mode )
+    {
+        case( UART_ISR_MODE_Rx ):
+            IO_REG(address, __UART_INTERRUPT_MASK) |= UART_IM_RXIM;
+            break;
+
+        case( UART_ISR_MODE_Tx ):
+            IO_REG(address, __UART_INTERRUPT_MASK) |= UART_IM_TXIM;
+            break;
+
+        default:
+            return;
+    }
+
+    __ISR_register( uart->ISR_vectorNum, __UART_ISR_handler );
+
+    __UART_ISR_Handlers[uart->module_num] = ISR_handler;
+
+    if( autoEnable )
+        UART_enable(uart, true);
+}
+
+void UART_enable( UART_Driver* uart, bool enableISR )
+{
+    unsigned long config = (1 << __GET_PIN(uart->Rx)) | (1 << __GET_PIN(uart->Tx));
+
+    if( enableISR )
+        __UART_ISR_enable(uart);
+
+    intptr_t address = __IO_PORTS_ADDR[__GET_PORT(uart->Rx)];
+    intptr_t uart_address = __UART_MODULES_ADDR[uart->module_num];
+
+    // enable digital
+    IO_REG(address, __IO_DIGITAL_ENABLE) |= config;
+    // enable alternative funtion
+    IO_REG(address, __IO_ALTERNATIVE_FUNC_SEL) |= config;
+    // enable UART
+    IO_REG(uart_address, __UART_CONTROL) |= UART_CTL_UARTEN;
+}
+
+void UART_disable( UART_Driver* uart, bool enableISR )
+{
+    unsigned long config = ( (1 << __GET_PIN(uart->Rx)) | (1 << __GET_PIN(uart->Tx)) );
+
+    if( enableISR )
+        __UART_ISR_disable(uart);
+
+    intptr_t address = __IO_PORTS_ADDR[__GET_PORT(uart->Rx)];
+    byte module_num = uart->module_num % (__UART_MODULES_NUM - 1);
+    intptr_t uart_address = __UART_MODULES_ADDR[module_num];
+
+    // disable digital
+    IO_REG(address, __IO_DIGITAL_ENABLE) &= ~config;
+    // disable alternative function
+    IO_REG(address, __IO_ALTERNATIVE_FUNC_SEL) &= ~config;
+    // disable UART
+    IO_REG(uart_address, __UART_CONTROL) &= ~( UART_CTL_UARTEN );
+}
+
+void __UART_ISR_enable( UART_Driver *uart )
+{
+    byte IRQ = uart->ISR_vectorNum - 16;
+
+    REG_VALUE(__ISR_CTRL_GET_ENABLE_ADDRESS(IRQ)) |= (1 << __ISR_CTRL_GET_ENABLE_INDEX(IRQ));
+//    NVIC_EN0_R |= (1 << __ISR_CTRL_GET_ENABLE_INDEX(IRQ));
+}
+
+void __UART_ISR_disable( UART_Driver *uart )
+{
+    byte IRQ = uart->ISR_vectorNum - 16;
+
+    REG_VALUE(__ISR_CTRL_GET_DISABLE_ADDRESS(IRQ)) |= (1 << __ISR_CTRL_GET_DISABLE_INDEX(IRQ));
+}
+
 void UART_print(UART_Driver *uart, char *data )
 {
+    ASSERT(uart is_not NULL);
     unsigned long address = __UART_MODULES_ADDR[uart->module_num];
 
     while(*data != '\0')
     {
         // poll until the fifo has a space for new data
-        while( (IO_REG(address, __UART_FLAG) & UART_FR_TXFF) != 0 );
+//        while( (IO_REG(address, __UART_FLAG) & UART_FR_TXFF) != 0 );
+        while( (IO_REG(address, __UART_FLAG) & UART_FR_BUSY) != 0 );
         IO_REG(address, __UART_DATA) = *data++;
     }
 }
@@ -189,7 +294,8 @@ void UART_write( UART_Driver *uart, byte *data, size_t data_len )
 
     do {
         // poll until the fifo has a space for new data
-        while( (IO_REG(address, __UART_FLAG) & UART_FR_TXFF) != 0 );
+//        while( (IO_REG(address, __UART_FLAG) & UART_FR_TXFF) != 0 );
+        while( (IO_REG(address, __UART_FLAG) & UART_FR_BUSY) != 0 );
         IO_REG(address, __UART_DATA) = *data++;
     } while(--data_len);
 }
@@ -199,7 +305,8 @@ byte UART_read( UART_Driver *uart )
     unsigned long address = __UART_MODULES_ADDR[uart->module_num];
 
     // poll until there is new data
-    while( (IO_REG(address, __UART_FLAG) & UART_FR_RXFE) != 0 );
+//    while( (IO_REG(address, __UART_FLAG) & UART_FR_RXFE) != 0 );
+    while( (IO_REG(address, __UART_FLAG) & UART_FR_BUSY) != 0 );
 
     // return only 1 byte
     return IO_REG(address, __UART_DATA) & 0xFF;
@@ -222,7 +329,8 @@ void UART_readAll( UART_Driver *uart, byte *buffer, size_t len )
     while(counter < len - 1)
     {
         // poll until there is new data
-        while( (IO_REG(address, __UART_FLAG) & UART_FR_RXFE) != 0 );
+//        while( (IO_REG(address, __UART_FLAG) & UART_FR_RXFE) != 0 );
+        while( (IO_REG(address, __UART_FLAG) & UART_FR_BUSY) != 0 );
 
         // get only 1 byte
         buffer[counter] = IO_REG(address, __UART_DATA) & 0xFF;
@@ -272,21 +380,22 @@ void UART_deinit( UART_Driver *uart )
     // critical section
 //    ISR_disable();
 
-    unsigned long config = (1 << uart->Rx) | (1 << uart->Tx);
-    byte port         = __GET_PORT(uart->Rx);
+//    unsigned long config = (1 << uart->Rx) | (1 << uart->Tx);
+//    byte port         = __GET_PORT(uart->Rx);
 
 /*********************************** UART ***********************************/
     // disable UART module
-    IO_REG(__UART_MODULES_ADDR[uart->module_num], __UART_CONTROL) &= ~UART_CTL_UARTEN;
+//    IO_REG(__UART_MODULES_ADDR[uart->module_num], __UART_CONTROL) &= ~UART_CTL_UARTEN;
     // disable UART CLK
     SYSCTL_RCGCUART_R &= ~(1 << uart->module_num);
 /****************************************************************************/
 
 /*********************************** GPIO ***********************************/
-    // disable DEN
-    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= ~config;
-    // disable AFSEL
-    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~config;
+//    // disable DEN
+//    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE) &= ~config;
+//    // disable AFSEL
+//    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~config;
+    UART_disable(uart, true);
 /****************************************************************************/
 
 /********************************* Interrupt *********************************/
@@ -304,17 +413,43 @@ void UART_deinit( UART_Driver *uart )
 //    ISR_enable();
 }
 
+void __UART_ISR_handler()
+{
+    byte vectorNumber = NVIC_INT_CTRL_R & NVIC_INT_CTRL_VEC_ACT_M;
+    const UART_Driver* uart = NULL;
+    intptr_t address;
+
+    // find with module responsable for the interruption
+    for( byte iii = 0; iii < __UART_MODULES_NUM; ++iii )
+        if( vectorNumber EQUAL UARTs[iii].ISR_vectorNum )
+            uart = &UARTs[iii];
+
+    address = __UART_MODULES_ADDR[uart->module_num];
+
+    IO_REG(address, __UART_INTERRUPT_CLEAR) |=
+            IO_REG(address, __UART_MASKED_INTERRUPT_STATUS);
+
+    __UART_ISR_Handlers[uart->module_num]();
+}
+
 /**************** This part is using for communication with PC ****************/
 #ifdef PC_COMMUNICATION
     #define U0 0
     // TODO: this part should be in cmake file as an option
     #define PC_COMMUNICATION_BAUDRATE UART_BAUDRATE_115200
-    Driver *__UART0 = NULL;
+    static Driver *__UART0 = NULL;
 
     void SYS_UART_init()
     {
         __UART0 = Driver_construct(UART, U0);
-        UART_init( __UART0, PC_COMMUNICATION_BAUDRATE );
+        UART_init( __UART0, PC_COMMUNICATION_BAUDRATE, true );
+    }
+
+    void SYS_UART_ISR_init( UART_ISR_MODE ISR_mode, void(*ISR_handler)() )
+    {
+        if(__UART0 is NULL)
+            __UART0 = Driver_construct(UART, U0);
+        UART_ISR_init( __UART0, PC_COMMUNICATION_BAUDRATE, ISR_mode, ISR_handler, true );
     }
 
     void SYS_UART_writeInt( int data )

@@ -41,10 +41,22 @@ PUBLIC
         UART_BAUDRATE_921600 = 921600
     } UART_BAUDRATE;
 
+    typedef enum UART_ISR_MODE {
+        UART_ISR_MODE_Tx,
+        UART_ISR_MODE_Rx,
+    } UART_ISR_MODE;
+
     typedef struct UART_Driver UART_Driver;
 
     // Functions
-    void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate );
+    void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate, bool autoEnable );
+    void UART_ISR_init( UART_Driver *uart,
+                        UART_BAUDRATE baudRate,
+                        UART_ISR_MODE ISR_mode,
+                        void(*ISR_handler)(),
+                        bool autoEnable );
+    void UART_enable( UART_Driver* uart, bool enableISR );
+    void UART_disable( UART_Driver* uart, bool enableISR );
     void UART_writeInt( UART_Driver *uart , int data );
     void UART_write( UART_Driver *uart, byte* data, size_t data_len );
     void UART_print( UART_Driver *uart, char* data );
@@ -57,6 +69,7 @@ PUBLIC
     // this part is using for communication with PC
     #ifdef PC_COMMUNICATION
         void SYS_UART_init();
+        void SYS_UART_ISR_init( UART_ISR_MODE ISR_mode, void(*ISR_handler)() );
         void SYS_UART_writeInt( int data );
         void SYS_UART_write( byte* data, size_t data_len );
         void SYS_UART_print( char* data );
