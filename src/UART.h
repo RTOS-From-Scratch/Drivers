@@ -50,13 +50,17 @@ PUBLIC
 
     // Functions
     void UART_init( UART_Driver *uart, UART_BAUDRATE baudRate, bool autoEnable );
+    void UART_enable( UART_Driver* uart );
+    void UART_disable( UART_Driver* uart );
     void UART_ISR_init( UART_Driver *uart,
                         UART_BAUDRATE baudRate,
                         UART_ISR_MODE ISR_mode,
+                        ISR_PRIORITY priority,
                         void(*ISR_handler)(),
                         bool autoEnable );
-    void UART_enable( UART_Driver* uart, bool enableISR );
-    void UART_disable( UART_Driver* uart, bool enableISR );
+    void UART_ISR_enable( UART_Driver* uart );
+    void UART_ISR_disable( UART_Driver* uart );
+    void UART_ISR_changePriroity( UART_Driver *uart, ISR_PRIORITY newPriority );
     void UART_writeInt( UART_Driver *uart , int data );
     void UART_write( UART_Driver *uart, byte* data, size_t data_len );
     void UART_print( UART_Driver *uart, char* data );

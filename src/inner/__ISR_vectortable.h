@@ -1,8 +1,6 @@
 #ifndef __ISR_VECTORTABLE_H_
 #define __ISR_VECTORTABLE_H_
 
-#include "../driver.h"
-
 enum VT_ExceptionNumber {
     ISR_RESET                   = 1,
     ISR_NMI,
@@ -98,7 +96,5 @@ typedef enum VT_ExceptionNumber VT_ExceptionNumber;
 
 void __ISR_vectorTable_init();
 void __ISR_register(VT_ExceptionNumber exception_num, void(*handler)(void));
-void __ISR_pushDriver( VT_ExceptionNumber exception_num, Driver* driver );
-Driver* __nanokernel_ISR_popDriver( VT_ExceptionNumber exception_num);
 
 #endif // NANOKERNEL_ISR_VECTORTABLE_H_

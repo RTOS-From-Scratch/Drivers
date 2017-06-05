@@ -5,48 +5,26 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "PLL.h"
-
-#define __SPI_MODULE_NUMBER(spi_module) ((byte)spi_module)
-#define __SPI_CLK_PORT(spi_module) ((byte)(spi_module >> BYTE_LENGTH))
-#define __SPI_CLK_PIN(spi_module) ((byte)(spi_module >> (BYTE_LENGTH * 2)))
-#define __SPI_PORT(spi_module) __SPI_CLK_PORT(spi_module)
-#define __SPI_PIN(spi_module) __SPI_CLK_PIN(spi_module)
-
-// TX | RX | SS | CLK
-#define __SPI_CONFIG            0b1111
-#define __SPI_DIR               0b1011
-#define __SPI_MISO_PIN          0b0100
-// SS | CLK | TX | RX
-#define __SPI_PORTF_CONFIG      0b1111
-#define __SPI_PORTF_DIR         0b1110
-#define __SPI_PORTF_MISO_PIN    0b0001
-
-#define __PCTL_SPI_MODULE_3 ( GPIO_PCTL_PD0_SSI3CLK | GPIO_PCTL_PD1_SSI3FSS | \
-                              GPIO_PCTL_PD2_SSI3RX  | GPIO_PCTL_PD3_SSI3TX )
-#define __PCTL_SPI_MODULE_3_CLR ( ~( GPIO_PCTL_PD0_M | GPIO_PCTL_PD1_M | \
-                                  GPIO_PCTL_PD2_M | GPIO_PCTL_PD3_M ) )
-// all other Modules have the same encode as SSI0
-#define __PCTL_SPI_MODULES  ( GPIO_PCTL_PA2_SSI0CLK | GPIO_PCTL_PA3_SSI0FSS | \
-                              GPIO_PCTL_PA4_SSI0RX  | GPIO_PCTL_PA5_SSI0TX )
-#define __PCTL_SPI_MODULES_CLR  ( ~( GPIO_PCTL_PA2_M | GPIO_PCTL_PA3_M | \
-                                    GPIO_PCTL_PA4_M | GPIO_PCTL_PA5_M ) )
+#include "inner/__ISR_vectortable.h"
+#include "ISR_ctrl.h"
+#include "Misc/src/assert.h"
 
 #define SPI_MODULE_3 3
 #define __SPI_MODULES_NUM 5
 
 enum __SPI_Properties_t
 {
-    __SPI_CONTROL_0             = 0x0,
-    __SPI_CONTROL_1             = 0x4,
-    __SPI_DATA                  = 0x8,
-    __SPI_STATUS                = 0xC,
-    __SPI_CLK_PRESCALE          = 0x10,
-    __SPI_INTERRUPT_MASK        = 0x14,
-    __SPI_RAW_INTERRUPT_MASK    = 0x18,
-    __SPI_MASKED_INTERRUPT_MASK = 0x1C,
-    __SPI_INTERRUPT_CLEAR       = 0x20,
-    __SPI_DMA_CONTROL           = 0x24,
-    __SPI_CLK_CONFIGURATION     = 0xFC8
+    __SPI_CONTROL_0               = 0x0,
+    __SPI_CONTROL_1               = 0x4,
+    __SPI_DATA                    = 0x8,
+    __SPI_STATUS                  = 0xC,
+    __SPI_CLK_PRESCALE            = 0x10,
+    __SPI_INTERRUPT_MASK          = 0x14,
+    __SPI_RAW_INTERRUPT_MASK      = 0x18,
+    __SPI_MASKED_INTERRUPT_STATUS = 0x1C,
+    __SPI_INTERRUPT_CLEAR         = 0x20,
+    __SPI_DMA_CONTROL             = 0x24,
+    __SPI_CLK_CONFIGURATION       = 0xFC8,
 };
 
 static const unsigned long __SPI_MODULES_ADDR[] = {
@@ -62,24 +40,30 @@ struct SPI_Driver {
     uint16_t CS;
     uint16_t Rx;
     uint16_t Tx;
-    byte PCTL_encoding;
+    byte ISR_vectorNum;
 };
 
 #define PCTL_ENCODING      0b10
 #define PCTL_ENCODING_SPI3 0b01
 
 static const SPI_Driver SPIs[__SPI_MODULES_NUM] = {
-    { 0, A2, A3, A4, A5 },          // SPI0
-    { 1, F2, F3, F0, F1 },          // SPI1_PORTF
-    { 2, B4, B5, B6, B7 },          // SPI2
-    { 3, D0, D1, D2, D3 },          // SPI3
-    { 1, D0, D1, D2, D3 },          // SPI1_PORTD
+    { 0, A2, A3, A4, A5, ISR_SSI_0 },          // SPI0
+    { 1, F2, F3, F0, F1, ISR_SSI_1 },          // SPI1_PORTF
+    { 2, B4, B5, B6, B7, ISR_SSI_2 },          // SPI2
+    { 3, D0, D1, D2, D3, ISR_SSI_3 },          // SPI3
+    { 1, D0, D1, D2, D3, ISR_SSI_1 },          // SPI1_PORTD
 };
+
+static void __SPI_ISR_handler();
+
+typedef void(*__ISR_handler)();
+static __ISR_handler __SPI_ISR_Handlers[ __SPI_MODULES_NUM ];
 
 void SPI_initAsMaster( SPI_Driver *spi, SPI_SPEED speed, bool autoEnable )
 {
+    ASSERT(spi is_not NULL);
+
     // FIXME: critical section
-//    Module spi_module = driver->module;
     byte port = __GET_PORT(spi->CLK);
     byte bits_specific;
     byte bits_specific_complemented;
@@ -126,8 +110,9 @@ void SPI_initAsMaster( SPI_Driver *spi, SPI_SPEED speed, bool autoEnable )
                                                           (PCTL_encoding << (__GET_PIN(spi->CS) * 4))  |
                                                           (PCTL_encoding << (__GET_PIN(spi->Rx) * 4))  |
                                                           (PCTL_encoding << (__GET_PIN(spi->Tx) * 4))  );
-    // enable alternative functions
-    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
+    if( autoEnable is true )
+        // enable alternative functions
+        IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
     // direction
     IO_REG(__IO_PORTS_ADDR[port], __IO_DIRECTION) =
             ( IO_REG(__IO_PORTS_ADDR[port], __IO_DIRECTION) & bits_specific_complemented ) + DIR_config;
@@ -171,7 +156,53 @@ void SPI_initAsMaster( SPI_Driver *spi, SPI_SPEED speed, bool autoEnable )
 /***************************************************************************/
 }
 
-void SPI_enable( SPI_Driver *spi )
+void SPI_ISR_initAsMaster( SPI_Driver *spi,
+                           SPI_SPEED speed,
+                           SPI_ISR_MODE ISR_mode,
+                           ISR_PRIORITY priority,
+                           void(*ISR_handler)(),
+                           bool autoEnable )
+{
+    intptr_t address = __SPI_MODULES_ADDR[spi->module_num];
+
+    // check if it's already initiated
+    // if so, disable it for configurations
+    if( (SYSCTL_RCGCSSI_R & (1 << spi->module_num)) EQUAL 0 )
+        SPI_initAsMaster(spi, speed, false);
+    else if( (IO_REG(address, __SPI_CONTROL_1) & SSI_CR1_SSE) NOT_EQUAL 0 )
+            SPI_disable(spi);
+
+    switch( ISR_mode )
+    {
+        case( SPI_ISR_MODE_Rx ):
+            IO_REG(address, __SPI_INTERRUPT_MASK) |= SSI_IM_RXIM;
+            break;
+
+        case( SPI_ISR_MODE_Tx ):
+            IO_REG(address, __SPI_INTERRUPT_MASK) |= SSI_IM_TXIM;
+            break;
+
+        default:
+            return;
+    }
+
+    __ISR_register( spi->ISR_vectorNum, __SPI_ISR_handler );
+
+    // set priority
+    __ISR_CTRL_setPriority(spi->ISR_vectorNum, priority);
+
+    __SPI_ISR_Handlers[spi->module_num] = ISR_handler;
+
+    if( autoEnable )
+        SPI_ISR_enable(spi);
+}
+
+void SPI_ISR_changePriroity( SPI_Driver *spi, ISR_PRIORITY newPriority )
+{
+    __ISR_CTRL_setPriority(spi->ISR_vectorNum, newPriority);
+}
+
+void SPI_enable(SPI_Driver *spi )
 {
     unsigned long base_address = __SPI_MODULES_ADDR[spi->module_num];
     unsigned long bits_specific = (1 << __GET_PIN(spi->CLK)) |
@@ -182,6 +213,8 @@ void SPI_enable( SPI_Driver *spi )
 
     // Digital enable
     IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE)   |= bits_specific;
+    // enable alternative function
+    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
     // enable SPI
     IO_REG(base_address, __SPI_CONTROL_1)    |= SSI_CR1_SSE;
 }
@@ -193,22 +226,43 @@ void SPI_disable( SPI_Driver *spi )
                                   (1 << __GET_PIN(spi->CS))  |
                                   (1 << __GET_PIN(spi->Rx))  |
                                   (1 << __GET_PIN(spi->Tx));
-    __PORT port = __SPI_PORT(spi->module_num);
+    __PORT port = __GET_PORT(spi->CS);
 
     // Digital disable
     IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE)   &= ~bits_specific;
+    // disable alternative function
+    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~bits_specific;
     // disable SPI
     IO_REG(base_address, __SPI_CONTROL_1)    &= ~SSI_CR1_SSE;
 }
 
-void SPI_setClkSpeedManually( SPI_Driver *spi, uint32_t speed )
+void SPI_ISR_enable( SPI_Driver *spi )
+{
+    __ISR_CTRL_enable(spi->ISR_vectorNum);
+
+    if( (IO_REG(__SPI_MODULES_ADDR[spi->module_num], __SPI_CONTROL_1) & SSI_CR1_SSE) EQUAL 0 )
+        SPI_enable(spi);
+}
+
+void SPI_ISR_disable( SPI_Driver *spi )
+{
+    __ISR_CTRL_disable(spi->ISR_vectorNum);
+}
+
+bool SPI_setClkSpeedManually( SPI_Driver *spi, uint32_t speed )
 {
     ClockSpeed sys_clk_speed = PLL_getClockSpeed();
+
+    if( speed > (sys_clk_speed / 2) )
+        return false;
+
     // calculate the new SCR (SSI Serial Clock Rate)
     byte SCR = ( sys_clk_speed / (speed * __SPI_SPEED_CONST_CLK_PRESCALE) ) - 1;
 
     // SPI_SPEED is just a shifted SCR to its bit index (SSI_CR0_SCR_S) in SSI_CR0
     SPI_setClkSpeed( spi, SCR << SSI_CR0_SCR_S );
+
+    return true;
 }
 
 void SPI_setClkSpeed( SPI_Driver *spi, SPI_SPEED speed )
@@ -299,31 +353,42 @@ bool __SPI_isAvailable( SPI_t spi )
 
 void SPI_deinit( SPI_Driver* spi )
 {
-    byte port = __GET_PORT(spi->CLK);
-    unsigned long config = (1 << __GET_PIN(spi->CLK)) |
-                           (1 << __GET_PIN(spi->CS))  |
-                           (1 << __GET_PIN(spi->Rx))  |
-                           (1 << __GET_PIN(spi->Tx));
-
-/************************************ SPI ************************************/
-    // disable SPI module
-    IO_REG(__SPI_MODULES_ADDR[spi->module_num], __SPI_CONTROL_1) &= ~(SSI_CR1_SSE);
+/********************************** SPI CLK **********************************/
     // disable SPI clk
     SYSCTL_RCGCSSI_R  &= ~(1 << spi->module_num);
 /*****************************************************************************/
 
-/*********************************** GPIO ***********************************/
-    // disable DEN
-    IO_REG(__IO_PORTS_ADDR[port], __IO_DIGITAL_ENABLE)   &= ~config;
-    // disable AFSEL
-    IO_REG(__IO_PORTS_ADDR[port], __IO_ALTERNATIVE_FUNC_SEL) &= ~config;
+/*********************************** SPI ***********************************/
+    SPI_disable(spi);
 /****************************************************************************/
 
+/********************************* Interrupt *********************************/
+    SPI_ISR_disable(spi);
+/*****************************************************************************/
+
 /********************************* free pins *********************************/
-//    __Driver_clearSavedConfig(driver);
     __Driver_setPinFree(spi->CLK);
     __Driver_setPinFree(spi->CS);
     __Driver_setPinFree(spi->Rx);
     __Driver_setPinFree(spi->Tx);
 /*****************************************************************************/
+}
+
+void __SPI_ISR_handler()
+{
+    byte vectorNumber = NVIC_INT_CTRL_R & NVIC_INT_CTRL_VEC_ACT_M;
+    const SPI_Driver* spi = NULL;
+    intptr_t address;
+
+    // find with module responsable for the interruption
+    for( byte iii = 0; iii < __SPI_MODULES_NUM; ++iii )
+        if( vectorNumber EQUAL SPIs[iii].ISR_vectorNum )
+            spi = &SPIs[iii];
+
+    address = __SPI_MODULES_ADDR[spi->module_num];
+
+    IO_REG(address, __SPI_INTERRUPT_CLEAR) |=
+            IO_REG(address, __SPI_MASKED_INTERRUPT_STATUS);
+
+    __SPI_ISR_Handlers[spi->module_num]();
 }

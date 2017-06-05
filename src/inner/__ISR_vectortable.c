@@ -12,9 +12,6 @@
 extern void (* const g_pfnVectors[])(void);
 typedef void (*VT_handler)(void);
 static __VT_SECTION__ VT_handler VectorTable[VT_LEN] __VT_align__;
-// This hold the `Driver` that represents
-// the corresponding `VT_ExceptionNumber` of the `VectorTable`
-static Driver* VT_Drivers[VT_LEN] = { 0 };
 
 void __ISR_vectorTable_init()
 {
@@ -29,14 +26,4 @@ void __ISR_vectorTable_init()
 void __ISR_register(VT_ExceptionNumber exception_num, void(*handler)(void))
 {
     VectorTable[exception_num] = (VT_handler)handler;
-}
-
-void __ISR_pushDriver( VT_ExceptionNumber exception_num, Driver* driver )
-{
-    VT_Drivers[exception_num] = driver;
-}
-
-Driver* __ISR_popDriver( VT_ExceptionNumber exception_num )
-{
-    return VT_Drivers[exception_num];
 }
