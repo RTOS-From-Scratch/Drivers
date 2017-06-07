@@ -51,6 +51,11 @@ __Driver_func __Drivers_func[] = {
       (__Driver_getModule_func)__ADC_getModule,
       (__Driver_isAvailable_func)__ADC_isAvailable
     },
+
+    //Timer
+    { (__Driver_deinit_func)NULL,
+      (__Driver_getModule_func)__Timer_getModule,
+      (__Driver_isAvailable_func)NULL}
 };
 
 static bool __IO_pinsAvailability[__PORTS_NUM * __PINS_PER_PORT] = { 0 };

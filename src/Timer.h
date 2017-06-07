@@ -8,42 +8,63 @@
 #include "DataStructures/src/inverted_priority_queue.h"
 #include "Misc/src/definitions.h"
 
-void (*Periodic_Task)(void);
-// TODO: move to .c
-int prevTimerValue, curretTimerValue, nextTimerValue;
+PUBLIC
+    //void (*Periodic_Task)(void);
+    // TODO: move to .c
+    //int prevTimerValue, curretTimerValue, nextTimerValue;
 
-//TODO:remove this
-//#define NVIC_R 0xE000E000
-//#define PRI4 0x410
-//#define EN0 0x100
+    typedef enum Timer_t
+    {
+        TIMER0,
+        TIMER1,
+        TIMER2,
+        TIMER3,
+        TIMER4,
+        TIMER5
+    } Timer_t;
 
-// timer_num, counter, PORT, PIN
-typedef enum TIMER_MODULE_t
-{
-    TIMER0,
-    TIMER1,
-    TIMER2,
-    TIMER3,
-    TIMER4,
-    TIMER5
-} TIMER_MODULE_t;
+    typedef enum TIMER_DIR
+    {
+        TIMER_DIR_COUNT_DOWN,
+        TIMER_DIR_COUNT_UP
+    } TIMER_DIR;
 
-void Timer_init(TIMER_MODULE_t timer_module, __Timer_Mode mode, __Timer_Count_Dir dir,  uint32_t value);
-void Timer_start(TIMER_MODULE_t timer_module);
-bool Timer_isDone(TIMER_MODULE_t timer_module);
-void Timer_handleDelayedStart( int delay );
+    typedef enum TIMER_MODE
+    {
+        TIMER_MODE_ONE_SHOT,
+        TIMER_MODE_PERIODIC
+    } TIMER_MODE;
 
-void RTC_init(TIMER_MODULE_t timer_module,  uint32_t value);
-bool RTC_isDone(TIMER_MODULE_t timer_module);
+    typedef struct Timer_Driver Timer_Driver;
 
-void Timer_SysTimer_init(int delay);
-void Timer_sysTimer_start();
-bool Timer_sysTimer_isDone();
-void Timer_sysTimer_reset(int newDelay);
-void Timer_sysTimer_stop();
-bool Timer_sysTimer_isWorking();
-uint32_t Timer_sysTimer_getCurrentTicks();
-uint32_t Timer_sysTimer_getMaxTicks();
-uint32_t Timer_sysTimer_getCurrentDelay();
+    void Timer_init( Timer_Driver* timer,
+                     TIMER_MODE mode,
+                     TIMER_DIR dir,
+                     uint32_t value );
+    void Timer_ISR_init(Timer_Driver* timer,
+                         uint32_t value, void(*timer_handler)()
+                        //TODO: priority,
+                        , ISR_PRIORITY priority);
+    void Timer_ISR_handler();
+    void Timer_setMatcher( uint32_t matchValue );
+    void Timer_start( Timer_Driver* timer );
+    void Timer_reset(Timer_Driver *timer, int newDelay , bool resetMatcher);
+    void Timer_stop( Timer_Driver* timer );
+    bool Timer_isDone( Timer_Driver* timer );
+    bool Timer_isStarted( Timer_Driver* timer );
+    uint32_t Timer_getCurrentTicks( Timer_Driver *timer );
+    uint32_t Timer_toTicks( uint32_t millisecond );
+    uint32_t Timer_toMillisecond( uint32_t ticks );
+    void Timer_deinit( Timer_Driver* timer );
+
+//    void RTC_init(Timer_Driver timer,  uint32_t value);
+//    bool RTC_isDone(Timer_Driver timer);
+
+//    uint32_t Timer_getMaxTicks();
+//    uint32_t Timer_getCurrentDelay(Timer_Driver *timer);
+
+PRIVATE
+    const Timer_Driver* __Timer_getModule(Timer_t timer);
+    bool __Timer_isAvailable( Timer_t timer );
 
 #endif //TIMER_H_
