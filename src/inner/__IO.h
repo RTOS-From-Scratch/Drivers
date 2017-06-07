@@ -25,7 +25,7 @@ enum __IO_PROPERTIES
     __IO_DIGITAL_ENABLE   = 0x51C,
     __IO_LOCK  = 0x520,
     __IO_COMMIT    = 0x524,
-    __IO_ANALOG_MODLE_SEL = 0x528,
+    __IO_ANALOG_MODE_SEL = 0x528,
     __IO_PORT_CONTROL  = 0x52C,
 };
 

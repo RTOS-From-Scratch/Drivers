@@ -95,7 +95,7 @@ void GPIO_init( GPIO_Driver *gpio, PIN_MODE mode , bool autoEnable )
     IO_REG(__IO_PORTS_ADDR[port], __IO_PORT_CONTROL) &= ~( 0xF << (pin * 4) );
 
     // AMSEL
-    IO_REG(port_addr, __IO_ANALOG_MODLE_SEL) &= bit_specific_complemented;
+    IO_REG(port_addr, __IO_ANALOG_MODE_SEL) &= bit_specific_complemented;
 
     // DEN
     if( autoEnable is true )

@@ -11,7 +11,7 @@
 #define U1_PORTB_PCTL_ENCODE_INDEX 8
 #define __UART_MODULES_NUM 9
 
-enum UART_Properties_t {
+typedef enum UART_Properties_t {
     __UART_DATA                     = 0x000,
     __UART_RECIEVE_STATUS           = 0x014,
     __UART_FLAG                     = 0x018,
@@ -118,7 +118,7 @@ void UART_init(UART_Driver *uart, UART_BAUDRATE baudRate , bool autoEnable )
         IO_REG(uart_port_addr, __IO_ALTERNATIVE_FUNC_SEL) |= bits_specific;
 
     // disable analog
-    IO_REG(uart_port_addr, __IO_ANALOG_MODLE_SEL) &= bits_specific_complemented;
+    IO_REG(uart_port_addr, __IO_ANALOG_MODE_SEL) &= bits_specific_complemented;
 
     if( autoEnable )
         // digital enable

@@ -117,7 +117,7 @@ void SPI_initAsMaster( SPI_Driver *spi, SPI_SPEED speed, bool autoEnable )
     IO_REG(__IO_PORTS_ADDR[port], __IO_DIRECTION) =
             ( IO_REG(__IO_PORTS_ADDR[port], __IO_DIRECTION) & bits_specific_complemented ) + DIR_config;
     // disable analog
-    IO_REG(__IO_PORTS_ADDR[port], __IO_ANALOG_MODLE_SEL) &= bits_specific_complemented;
+    IO_REG(__IO_PORTS_ADDR[port], __IO_ANALOG_MODE_SEL) &= bits_specific_complemented;
 
     if( autoEnable is true )
         // Digital enable
