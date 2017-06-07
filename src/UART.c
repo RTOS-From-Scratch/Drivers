@@ -419,7 +419,7 @@ void __UART_ISR_handler()
     const UART_Driver* uart = NULL;
     intptr_t address;
 
-    // find with module responsable for the interruption
+    // find which module responsable for the interruption
     for( byte iii = 0; iii < __UART_MODULES_NUM; ++iii )
         if( vectorNumber EQUAL UARTs[iii].ISR_vectorNum )
             uart = &UARTs[iii];
