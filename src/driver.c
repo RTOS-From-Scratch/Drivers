@@ -2,6 +2,7 @@
 #include "UART.h"
 #include "SPI.h"
 #include "Timer.h"
+#include "ADC.h"
 #include "Misc/src/definitions.h"
 #include <stdbool.h>
 #include "inner/__IO.h"
@@ -30,17 +31,26 @@ __Driver_func __Drivers_func[] = {
     // GPIO
     { (__Driver_deinit_func)GPIO_deinit,
       (__Driver_getModule_func)__GPIO_getPin,
-      (__Driver_isAvailable_func)__GPIO_isAvailable,},
+      (__Driver_isAvailable_func)__GPIO_isAvailable,
+    },
 
     // UART
     { (__Driver_deinit_func)UART_deinit,
       (__Driver_getModule_func)__UART_getModule,
-      (__Driver_isAvailable_func)__UART_isAvailable},
+      (__Driver_isAvailable_func)__UART_isAvailable
+    },
 
     // SPI
     { (__Driver_deinit_func)SPI_deinit,
       (__Driver_getModule_func)__SPI_getModule,
-      (__Driver_isAvailable_func)__SPI_isAvailable},
+      (__Driver_isAvailable_func)__SPI_isAvailable
+    },
+
+    // ADC
+    { (__Driver_deinit_func)ADC_deinit,
+      (__Driver_getModule_func)__ADC_getModule,
+      (__Driver_isAvailable_func)__ADC_isAvailable
+    },
 };
 
 static bool __IO_pinsAvailability[__PORTS_NUM * __PINS_PER_PORT] = { 0 };

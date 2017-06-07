@@ -13,6 +13,7 @@ PUBLIC
         GPIO,
         UART,
         SPI,
+        ADC,
     } DriverName;
 
     // Module here recieves UART, GPIO, SPI, ... modules enums
