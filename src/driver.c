@@ -41,6 +41,11 @@ __Driver_func __Drivers_func[] = {
     { (__Driver_deinit_func)SPI_deinit,
       (__Driver_getModule_func)__SPI_getModule,
       (__Driver_isAvailable_func)__SPI_isAvailable},
+
+    //Timer
+    { (__Driver_deinit_func)NULL,
+      (__Driver_getModule_func)__Timer_getModule,
+      (__Driver_isAvailable_func)NULL}
 };
 
 static bool __IO_pinsAvailability[__PORTS_NUM * __PINS_PER_PORT] = { 0 };
