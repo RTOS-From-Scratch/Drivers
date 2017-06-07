@@ -28,19 +28,6 @@ enum __timer_reg_offset
 };
 typedef enum __timer_reg_offset __timer_reg_offset;
 
-enum __Timer_Count_Dir
-{
-    __DOWN, __UP
-};
-typedef enum __Timer_Count_Dir __Timer_Count_Dir;
-
-enum __Timer_Mode
-{
-    __one_shot_timer,
-    __periodic_timer
-};
-typedef enum __Timer_Mode __Timer_Mode;
-
 enum __Timer_Counter
 {
     __Timer_A, __Timer_B
