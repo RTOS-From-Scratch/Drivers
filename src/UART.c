@@ -436,7 +436,6 @@ void __UART_ISR_handler()
 #ifdef PC_COMMUNICATION
     #define U0 0
     // TODO: this part should be in cmake file as an option
-    #define PC_COMMUNICATION_BAUDRATE UART_BAUDRATE_115200
     static Driver *__UART0 = NULL;
 
     void SYS_UART_init()

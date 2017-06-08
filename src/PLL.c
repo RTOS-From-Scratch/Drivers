@@ -6,7 +6,7 @@
  */
 
 #include "PLL.h"
-#include <Misc/src/definitions.h>
+#include "Misc/src/definitions.h"
 #include "tm4c123gh6pm.h"
 
 /* PLL (XTAL) frequency
