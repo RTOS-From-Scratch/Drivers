@@ -32,37 +32,37 @@ void Timer_init(Timer_Driver* timer, TIMER_MODE mode, TIMER_DIR dir, uint32_t va
     byte timer_module = timer->module_num;
 
     // enable timer clk
-    IO_REG(RCGC_BASE, RCGCTIMER_OFFSET) |= ( 1 << timer_module );
+    IO_REG(__RCGC_BASE, __RCGCTIMER_OFFSET) |= ( 1 << timer_module );
     while((SYSCTL_PPTIMER_R & (1 << timer_module)) == 0);
 
     //disable TnEN bit in TIMERCTL register
-    IO_REG(__Timer_Addr[timer_module], TIMER_CTL_R) &= ~TIMER_CTL_TAEN;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_CTL_R) &= ~TIMER_CTL_TAEN;
 
     // clear configuration register
     // configure for 32-bit timer
-    IO_REG(__Timer_Addr[timer_module], TIMER_CFG_R) = 0x0;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_CFG_R) = 0x0;
 
     //if timer is periodic mode
     if(mode)
-        IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R) |= TIMER_TAMR_TAMR_PERIOD;
+        IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R) |= TIMER_TAMR_TAMR_PERIOD;
     //if timer is one shot mode
     else
-        IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R) = TIMER_TAMR_TAMR_1_SHOT;
+        IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R) = TIMER_TAMR_TAMR_1_SHOT;
 
     //set the direction of the counting
-    IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R)   |= (dir << 4);
+    IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R)   |= (dir << 4);
 
     //set the value of the timer
-    IO_REG(__Timer_Addr[timer_module], TIMER_TA_IL_R)  = value;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_TA_IL_R)  = value;
 
 }
 
 void Timer_ISR_init(Timer_Driver* timer, uint32_t value, void (*timer_handler)(), ISR_PRIORITY priority)
 {
     byte timer_module = timer->module_num;
-    IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R) |= 0x20;
-    IO_REG(__Timer_Addr[timer_module], TIMER_TA_MATCHR)   =  value;
-    IO_REG(__Timer_Addr[timer_module], TIMER_IM_R)   |= 0x10;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R) |= 0x20;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_TA_MATCHR)   =  value;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_IM_R)   |= 0x10;
 
     NVIC_EN0_R |= 1 << 19;
 
@@ -88,8 +88,8 @@ void Timer_ISR_handler()
 
     address = __Timer_Addr[timer->module_num];
 
-    IO_REG(address, TIMER_IC_R) |=
-            IO_REG(address, TIMER_MIS);
+    IO_REG(address, __TIMER_IC_R) |=
+            IO_REG(address, __TIMER_MIS);
 
     Timer_ISR_Handlers[timer->module_num]();
 }
@@ -99,10 +99,10 @@ void Timer_deinit(Timer_Driver* timer)
     byte timer_module = timer->module_num;
     availbeTimers[timer_module] = 0;
 
-    IO_REG(__Timer_Addr[timer_module], TIMER_CTL_R) &= ~TIMER_CTL_TAEN;
-    IO_REG(RCGC_BASE, RCGCTIMER_OFFSET) &= ( 0 << timer_module );
-    IO_REG(__Timer_Addr[timer_module], TIMER_CFG_R) = 0x0;
-    IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R) = 0;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_CTL_R) &= ~TIMER_CTL_TAEN;
+    IO_REG(__RCGC_BASE, __RCGCTIMER_OFFSET) &= ( 0 << timer_module );
+    IO_REG(__Timer_Addr[timer_module], __TIMER_CFG_R) = 0x0;
+    IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R) = 0;
 }
 
 bool __Timer_isAvailable(Timer_t timer)
@@ -114,12 +114,12 @@ bool __Timer_isAvailable(Timer_t timer)
 
 void Timer_start(Timer_Driver* timer)
 {
-    IO_REG(__Timer_Addr[timer->module_num], TIMER_CTL_R) |= (1 << 0);
+    IO_REG(__Timer_Addr[timer->module_num], __TIMER_CTL_R) |= (1 << 0);
 }
 
 bool Timer_isDone(Timer_Driver* timer)
 {
-    while(!(IO_REG(__Timer_Addr[timer->module_num], TIMER_MRIS) & (1<< 0)));
+    while(!(IO_REG(__Timer_Addr[timer->module_num], __TIMER_MRIS) & (1<< 0)));
 
     return true;
 }
@@ -132,9 +132,9 @@ void Timer_reset(Timer_Driver* timer, int newValue, bool resetMatcher)
     if (resetMatcher)
     {
         byte timer_module = timer->module_num;
-        IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R)   |= TIMER_TAMR_TAMIE;
-        IO_REG(__Timer_Addr[timer_module], TIMER_TA_M_R) &= ~(TIMER_TAMR_TAMRSU);
-        IO_REG(__Timer_Addr[timer_module], TIMER_TA_MATCHR)   = newValue;
+        IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R)   |= TIMER_TAMR_TAMIE;
+        IO_REG(__Timer_Addr[timer_module], __TIMER_TA_M_R) &= ~(TIMER_TAMR_TAMRSU);
+        IO_REG(__Timer_Addr[timer_module], __TIMER_TA_MATCHR)   = newValue;
     }
 
 }
@@ -142,7 +142,7 @@ void Timer_reset(Timer_Driver* timer, int newValue, bool resetMatcher)
 
 uint32_t Timer_getCurrentTicks(Timer_Driver* timer)
 {
-    return IO_REG(__Timer_Addr[timer->module_num], TIMER_TA_V);
+    return IO_REG(__Timer_Addr[timer->module_num], __TIMER_TA_V);
 }
 
 uint32_t Timer_getMaxTicks()
@@ -152,7 +152,7 @@ uint32_t Timer_getMaxTicks()
 
 uint32_t Timer_getCurrentDelay(Timer_Driver* timer)
 {
-    return IO_REG(__Timer_Addr[timer->module_num], TIMER_TA_MATCHR);
+    return IO_REG(__Timer_Addr[timer->module_num], __TIMER_TA_MATCHR);
 }
 
 
