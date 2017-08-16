@@ -115,11 +115,11 @@ bool __SysTick_isInit()
 uint32_t __SysTick_getTicks(uint32_t milliSecond)
 {
     ClockSpeed sys_clk_speed = PLL_getClockSpeed();
-    return (sys_clk_speed * 1E6 / 1000) * milliSecond;
+    return (sys_clk_speed * 1000) * milliSecond;
 }
 
 uint32_t __SysTick_getMilliSecond(uint32_t ticks)
 {
     ClockSpeed sys_clk_speed = PLL_getClockSpeed();
-    return ticks / (sys_clk_speed * 1E6 / 1000);
+    return ticks / (sys_clk_speed * 1000);
 }

@@ -6,7 +6,8 @@
 
 PUBLIC
     typedef enum ISR_PRIORITY {
-        ISR_PRIORITY_0,
+        ISR_NOPRIORITY = -1,
+        ISR_PRIORITY_0 = 0,
         ISR_PRIORITY_1,
         ISR_PRIORITY_2,
         ISR_PRIORITY_3,
