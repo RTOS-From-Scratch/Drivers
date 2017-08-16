@@ -9,10 +9,6 @@
 #include "Misc/src/definitions.h"
 
 PUBLIC
-    //void (*Periodic_Task)(void);
-    // TODO: move to .c
-    //int prevTimerValue, curretTimerValue, nextTimerValue;
-
     typedef enum Timer_t
     {
         TIMER0,
@@ -32,7 +28,8 @@ PUBLIC
     typedef enum TIMER_MODE
     {
         TIMER_MODE_ONE_SHOT,
-        TIMER_MODE_PERIODIC
+        TIMER_MODE_PERIODIC,
+        TIMER_MODE_PWM                  // Un-finished yet
     } TIMER_MODE;
 
     typedef struct Timer_Driver Timer_Driver;
@@ -41,20 +38,24 @@ PUBLIC
                      TIMER_MODE mode,
                      TIMER_DIR dir,
                      uint32_t value );
-    void Timer_ISR_init(Timer_Driver* timer,
-                         uint32_t value, void(*timer_handler)()
-                        //TODO: priority,
-                        , ISR_PRIORITY priority);
-    void Timer_ISR_handler();
-    void Timer_setMatcher( uint32_t matchValue );
+    void Timer_ISRConfig( Timer_Driver* timer,
+                          void(*timer_handler)(),
+                          ISR_PRIORITY priority );
+    void Timer_matcherConfig( Timer_Driver* timer,
+                              uint32_t matchValue,
+                              void(*matcher_handler)(),
+                              ISR_PRIORITY priority );
+    void Timer_ISR_changePriroity( Timer_Driver *timer, ISR_PRIORITY newPriority );
     void Timer_start( Timer_Driver* timer );
-    void Timer_reset(Timer_Driver *timer, int newDelay , bool resetMatcher);
     void Timer_stop( Timer_Driver* timer );
+    bool Timer_reset( Timer_Driver *timer, uint32_t newValue );
+    bool Timer_resetMatcher( Timer_Driver *timer, uint32_t newValue );
     bool Timer_isDone( Timer_Driver* timer );
-    bool Timer_isStarted( Timer_Driver* timer );
+    bool Timer_isTicking( Timer_Driver* timer );
     uint32_t Timer_getCurrentTicks( Timer_Driver *timer );
     uint32_t Timer_toTicks( uint32_t millisecond );
     uint32_t Timer_toMillisecond( uint32_t ticks );
+    uint32_t Timer_getMaxTicks();
     void Timer_deinit( Timer_Driver* timer );
 
 //    void RTC_init(Timer_Driver timer,  uint32_t value);
